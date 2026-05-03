@@ -1,0 +1,19 @@
+{
+  "seed": 20260422,
+  "generated_at": "2026-05-03T01:17:41.772188Z",
+  "elapsed_seconds": 3.93,
+  "row_counts": {
+    "csm_rep": 50,
+    "accounts": 1000,
+    "contracts": 1050,
+    "daily_usage_logs": 293758,
+    "account_health": 32690
+  },
+  "files": [
+    "csm_rep.parquet",
+    "accounts.parquet",
+    "contracts.parquet",
+    "daily_usage_logs.parquet",
+    "account_health.parquet"
+  ]
+}

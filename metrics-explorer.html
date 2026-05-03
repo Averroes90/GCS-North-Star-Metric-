@@ -1,0 +1,3903 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>GCS North Star Metric, Concept Primer & Metrics Explorer</title>
+<style>
+  * { box-sizing: border-box; }
+  :root {
+    --bg: #f6f7f9;
+    --panel: #ffffff;
+    --panel-alt: #fafbfc;
+    --text: #0f172a;
+    --text-muted: #64748b;
+    --text-soft: #475569;
+    --border: #e2e8f0;
+    --border-strong: #cbd5e1;
+    --accent: #1e3a8a;
+    --accent-2: #ea580c;
+    --dim-bookings: #2563eb;
+    --dim-deploy: #7c3aed;
+    --dim-tech: #059669;
+    --dim-usage: #ea580c;
+    --good: #059669;
+    --warn: #d97706;
+    --bad: #dc2626;
+    --chip-bg: #f1f5f9;
+    --row-hover: #f8fafc;
+  }
+  html, body {
+    margin: 0;
+    padding: 0;
+    background: var(--bg);
+    color: var(--text);
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Inter", Roboto, Helvetica, Arial, sans-serif;
+    font-size: 15px;
+    line-height: 1.55;
+  }
+  header.hero {
+    background: linear-gradient(135deg, #0f172a 0%, #1e293b 60%, #334155 100%);
+    color: #fff;
+    padding: 40px 48px 32px;
+    border-bottom: 3px solid var(--accent-2);
+  }
+  header.hero h1 {
+    margin: 0 0 8px 0;
+    font-size: 28px;
+    font-weight: 650;
+    letter-spacing: -0.01em;
+  }
+  header.hero p {
+    margin: 0;
+    color: #cbd5e1;
+    max-width: 820px;
+    font-size: 15px;
+  }
+  header.hero .tag {
+    display: inline-block;
+    background: rgba(234,88,12,0.15);
+    color: #fdba74;
+    border: 1px solid rgba(234,88,12,0.4);
+    padding: 2px 10px;
+    font-size: 11px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    border-radius: 3px;
+    margin-bottom: 12px;
+  }
+
+  nav.tabs {
+    background: var(--panel);
+    border-bottom: 1px solid var(--border);
+    padding: 0 48px;
+    display: flex;
+    gap: 4px;
+    position: sticky;
+    top: 0;
+    z-index: 10;
+  }
+  nav.tabs button {
+    background: none;
+    border: none;
+    padding: 14px 18px;
+    font-size: 14px;
+    font-weight: 500;
+    color: var(--text-muted);
+    cursor: pointer;
+    border-bottom: 2px solid transparent;
+    transition: all 0.15s ease;
+    font-family: inherit;
+  }
+  nav.tabs button:hover { color: var(--text); }
+  nav.tabs button.active {
+    color: var(--accent);
+    border-bottom-color: var(--accent);
+    font-weight: 600;
+  }
+
+  main {
+    padding: 32px 48px 80px;
+    max-width: 1400px;
+    margin: 0 auto;
+  }
+  section.view { display: none; }
+  section.view.active { display: block; }
+
+  h2 {
+    font-size: 22px;
+    font-weight: 650;
+    margin: 0 0 8px 0;
+    letter-spacing: -0.01em;
+  }
+  h3 {
+    font-size: 17px;
+    font-weight: 600;
+    margin: 28px 0 12px 0;
+  }
+  .lead {
+    color: var(--text-soft);
+    margin: 0 0 24px 0;
+    max-width: 820px;
+  }
+
+  /* Dimension cards */
+  .dim-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+    gap: 16px;
+    margin: 24px 0;
+  }
+  .dim-card {
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 20px;
+    border-left: 4px solid var(--border);
+    transition: box-shadow 0.15s ease;
+  }
+  .dim-card:hover { box-shadow: 0 4px 12px rgba(15,23,42,0.06); }
+  .dim-card.bookings { border-left-color: var(--dim-bookings); }
+  .dim-card.deploy { border-left-color: var(--dim-deploy); }
+  .dim-card.tech { border-left-color: var(--dim-tech); }
+  .dim-card.usage { border-left-color: var(--dim-usage); }
+  .dim-card h4 {
+    margin: 0 0 4px 0;
+    font-size: 16px;
+    font-weight: 600;
+  }
+  .dim-card .subtitle {
+    color: var(--text-muted);
+    font-size: 12px;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    font-weight: 600;
+    margin-bottom: 14px;
+  }
+  .dim-card .field {
+    margin-top: 12px;
+  }
+  .dim-card .field-label {
+    font-size: 11px;
+    text-transform: uppercase;
+    font-weight: 600;
+    color: var(--text-muted);
+    letter-spacing: 0.04em;
+    margin-bottom: 4px;
+  }
+  .dim-card .field-body { font-size: 14px; color: var(--text-soft); }
+
+  /* Metrics table */
+  .filters {
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 16px 20px;
+    margin-bottom: 16px;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 20px;
+    align-items: center;
+  }
+  .filter-group {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .filter-group label {
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+  }
+  .filter-group select, .filter-group input[type=text] {
+    background: var(--panel);
+    border: 1px solid var(--border-strong);
+    border-radius: 6px;
+    padding: 6px 10px;
+    font-size: 14px;
+    font-family: inherit;
+    color: var(--text);
+  }
+  .filter-group input[type=text] { min-width: 200px; }
+  .toggle {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 13px;
+    color: var(--text-soft);
+    cursor: pointer;
+    user-select: none;
+  }
+  .toggle input { cursor: pointer; }
+
+  .metrics-table-wrap {
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+  }
+  table.metrics {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 13.5px;
+    table-layout: fixed;
+  }
+  table.metrics thead th {
+    background: var(--panel-alt);
+    border-bottom: 2px solid var(--border-strong);
+    text-align: left;
+    padding: 12px 12px;
+    font-size: 11px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    color: var(--text-muted);
+    vertical-align: middle;
+  }
+  table.metrics thead th:first-child { border-top-left-radius: 8px; }
+  table.metrics thead th:last-child { border-top-right-radius: 8px; }
+  table.metrics tbody tr.main-row {
+    border-bottom: 1px solid var(--border);
+    cursor: pointer;
+    transition: background 0.1s ease;
+  }
+  table.metrics tbody tr.main-row:hover { background: var(--row-hover); }
+  table.metrics tbody tr.main-row.expanded { background: var(--row-hover); }
+  table.metrics td {
+    padding: 12px;
+    vertical-align: top;
+    word-wrap: break-word;
+    overflow-wrap: break-word;
+  }
+  table.metrics td.name {
+    font-weight: 600;
+    white-space: nowrap;
+  }
+  table.metrics td.name .full {
+    display: block;
+    font-weight: 400;
+    font-size: 11px;
+    color: var(--text-muted);
+    margin-top: 2px;
+  }
+  table.metrics td.cat {
+    font-size: 11px;
+    text-transform: uppercase;
+    font-weight: 600;
+    letter-spacing: 0.04em;
+    color: var(--text-muted);
+  }
+  td.dim-cell {
+    text-align: center;
+    width: 60px;
+  }
+  .cov-dot {
+    display: inline-block;
+    width: 14px;
+    height: 14px;
+    border-radius: 50%;
+    position: relative;
+    border: 2px solid currentColor;
+  }
+  .cov-dot.full { background: currentColor; }
+  .cov-dot.partial::after {
+    content: "";
+    position: absolute;
+    left: -2px; top: -2px;
+    width: 14px; height: 14px;
+    border-radius: 50%;
+    background: currentColor;
+    clip-path: inset(0 50% 0 0);
+  }
+  .cov-dot.none { background: transparent; opacity: 0.35; }
+  td.dim-bkg .cov-dot { color: var(--dim-bookings); }
+  td.dim-dep .cov-dot { color: var(--dim-deploy); }
+  td.dim-th .cov-dot  { color: var(--dim-tech); }
+  td.dim-us .cov-dot  { color: var(--dim-usage); }
+
+  .pill {
+    display: inline-block;
+    padding: 2px 8px;
+    border-radius: 10px;
+    font-size: 11px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.03em;
+  }
+  .pill.lead { background: #dcfce7; color: #166534; }
+  .pill.lag { background: #fef3c7; color: #92400e; }
+  .pill.game-low  { background: #dcfce7; color: #166534; }
+  .pill.game-med  { background: #fef3c7; color: #92400e; }
+  .pill.game-high { background: #fee2e2; color: #991b1b; }
+  .pill.cat-commercial { background: #dbeafe; color: #1e40af; }
+  .pill.cat-consumption { background: #fed7aa; color: #9a3412; }
+  .pill.cat-technical { background: #d1fae5; color: #065f46; }
+  .pill.cat-sentiment { background: #e9d5ff; color: #6b21a8; }
+  .pill.cat-composite { background: #fce7f3; color: #9f1239; }
+
+  tr.detail-row { display: none; }
+  tr.detail-row.open { display: table-row; }
+  tr.detail-row td {
+    background: #fafbfc;
+    padding: 16px 24px;
+    border-top: 1px dashed var(--border);
+  }
+  .detail-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+    gap: 16px;
+  }
+  .detail-block .label {
+    font-size: 11px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    color: var(--text-muted);
+    margin-bottom: 4px;
+  }
+  .detail-block .body {
+    font-size: 13.5px;
+    color: var(--text-soft);
+  }
+
+  /* Legend */
+  .legend {
+    display: flex;
+    gap: 20px;
+    flex-wrap: wrap;
+    margin: 12px 0 4px 0;
+    padding: 10px 16px;
+    background: var(--panel-alt);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    font-size: 12.5px;
+    color: var(--text-soft);
+  }
+  .legend-item {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+
+  /* Concepts */
+  .concept-block {
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 20px 24px;
+    margin-bottom: 14px;
+  }
+  .concept-block h4 {
+    margin: 0 0 4px 0;
+    font-size: 16px;
+    font-weight: 600;
+    color: var(--accent);
+  }
+  .concept-block .subhead {
+    font-size: 12px;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    font-weight: 600;
+    margin-bottom: 10px;
+  }
+  .concept-block p { margin: 8px 0; color: var(--text-soft); }
+  .concept-block table {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 10px 0;
+    font-size: 13.5px;
+  }
+  .concept-block th, .concept-block td {
+    text-align: left;
+    padding: 8px 12px;
+    border-bottom: 1px solid var(--border);
+  }
+  .concept-block th {
+    background: var(--panel-alt);
+    font-weight: 600;
+    font-size: 12px;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    color: var(--text-muted);
+  }
+
+  /* Edge case cards */
+  .edge-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    gap: 14px;
+    margin: 14px 0;
+  }
+  .edge-card {
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 16px;
+    border-top: 3px solid var(--accent-2);
+  }
+  .edge-card h5 {
+    margin: 0 0 8px 0;
+    font-size: 14px;
+    font-weight: 600;
+  }
+  .edge-card .pct {
+    display: inline-block;
+    background: #fee2e2;
+    color: #991b1b;
+    font-size: 11px;
+    font-weight: 700;
+    padding: 1px 6px;
+    border-radius: 3px;
+    margin-left: 6px;
+  }
+  .edge-card p {
+    margin: 6px 0 0 0;
+    font-size: 13px;
+    color: var(--text-soft);
+  }
+
+  /* Takeaways */
+  .takeaway {
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-left: 4px solid var(--accent-2);
+    border-radius: 8px;
+    padding: 16px 20px;
+    margin-bottom: 12px;
+  }
+  .takeaway .num {
+    display: inline-block;
+    background: var(--accent);
+    color: #fff;
+    width: 24px;
+    height: 24px;
+    border-radius: 50%;
+    text-align: center;
+    line-height: 24px;
+    font-size: 12px;
+    font-weight: 700;
+    margin-right: 8px;
+    vertical-align: middle;
+  }
+  .takeaway strong { color: var(--text); }
+
+  .count-badge {
+    background: var(--chip-bg);
+    color: var(--text-muted);
+    padding: 2px 8px;
+    font-size: 12px;
+    border-radius: 10px;
+    font-weight: 600;
+    margin-left: 8px;
+  }
+
+  /* Architecture diagram */
+  .arch-wrap {
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 24px;
+    margin-bottom: 16px;
+    overflow-x: auto;
+  }
+  .arch-grid {
+    display: grid;
+    grid-template-columns: 1fr 24px 1fr 24px 1fr 24px 1fr 24px 1fr;
+    gap: 0;
+    align-items: stretch;
+    min-width: 1200px;
+  }
+  .arch-col {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  }
+  .arch-col-header {
+    text-align: center;
+    font-size: 11px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: var(--text-muted);
+    padding: 8px 4px;
+    border-bottom: 2px solid var(--border-strong);
+    margin-bottom: 8px;
+  }
+  .arch-card {
+    background: var(--panel-alt);
+    border: 1.5px solid var(--border-strong);
+    border-radius: 8px;
+    padding: 12px 14px;
+    transition: all 0.15s ease;
+  }
+  .arch-card:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(15,23,42,0.08);
+  }
+  .arch-card.python { border-color: #d97706; background: #fffbeb; }
+  .arch-card.bq     { border-color: #2563eb; background: #eff6ff; }
+  .arch-card.sql    { border-color: #7c3aed; background: #faf5ff; }
+  .arch-card.output { border-color: #059669; background: #ecfdf5; }
+  .arch-card .card-title {
+    font-family: ui-monospace, monospace;
+    font-size: 12.5px;
+    font-weight: 700;
+    color: var(--text);
+    line-height: 1.3;
+  }
+  .arch-card .card-sub {
+    font-size: 10.5px;
+    color: var(--text-muted);
+    margin-top: 4px;
+    line-height: 1.4;
+  }
+  .arch-card.python .card-title { color: #92400e; }
+  .arch-card.bq .card-title { color: #1e40af; }
+  .arch-card.sql .card-title { color: #6d28d9; }
+  .arch-card.output .card-title { color: #047857; }
+  .arch-card ul {
+    margin: 6px 0 0 0;
+    padding-left: 16px;
+    font-size: 11px;
+    color: var(--text-soft);
+    line-height: 1.6;
+  }
+  .arch-card ul li { margin: 1px 0; }
+  .arch-arrow {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--text-muted);
+    font-size: 22px;
+    font-weight: 700;
+    padding-top: 60px;
+  }
+  .arch-card .group-label {
+    font-size: 9.5px;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    font-weight: 700;
+    color: var(--text-muted);
+    margin-bottom: 6px;
+    border-bottom: 1px dashed var(--border);
+    padding-bottom: 3px;
+  }
+  .arch-legend {
+    display: flex;
+    gap: 18px;
+    flex-wrap: wrap;
+    margin: 14px 0 0 0;
+    padding: 10px 16px;
+    background: var(--panel-alt);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    font-size: 12px;
+    color: var(--text-soft);
+  }
+  .arch-legend .swatch {
+    display: inline-block;
+    width: 14px;
+    height: 14px;
+    border-radius: 3px;
+    margin-right: 6px;
+    vertical-align: middle;
+    border: 1.5px solid;
+  }
+
+  /* Scripts & run guide */
+  .script-card {
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 18px 22px;
+    margin-bottom: 14px;
+    border-left: 4px solid var(--accent);
+  }
+  .script-card.gen { border-left-color: #d97706; }
+  .script-card.load { border-left-color: #2563eb; }
+  .script-card.pipeline { border-left-color: #7c3aed; }
+  .script-card.inspect { border-left-color: #059669; }
+  .script-card.dash { border-left-color: #dc2626; }
+  .script-head {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    margin-bottom: 4px;
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+  .script-head h4 {
+    margin: 0;
+    font-size: 16px;
+    font-weight: 700;
+    font-family: ui-monospace, monospace;
+    color: var(--text);
+  }
+  .script-head .phase-tag {
+    font-size: 10px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    padding: 2px 8px;
+    border-radius: 10px;
+    background: var(--chip-bg);
+    color: var(--text-muted);
+  }
+  .script-purpose {
+    font-size: 13.5px;
+    color: var(--text-soft);
+    margin: 4px 0 14px;
+  }
+  .script-grid {
+    display: grid;
+    grid-template-columns: 110px 1fr;
+    gap: 6px 16px;
+    font-size: 13px;
+  }
+  .script-grid .lbl {
+    font-size: 11px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    color: var(--text-muted);
+    padding-top: 1px;
+  }
+  .script-grid .val {
+    color: var(--text-soft);
+  }
+  .script-grid .val code {
+    background: #0f172a;
+    color: #e2e8f0;
+    padding: 2px 8px;
+    border-radius: 4px;
+    font-size: 12.5px;
+  }
+  .script-flow {
+    background: var(--panel-alt);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 14px 18px;
+    margin: 16px 0;
+    font-family: ui-monospace, monospace;
+    font-size: 12.5px;
+    line-height: 1.7;
+    color: var(--text-soft);
+    overflow-x: auto;
+  }
+
+  /* Small helpers */
+  .muted { color: var(--text-muted); }
+  .kbd { font-family: ui-monospace, monospace; background: var(--chip-bg); padding: 1px 6px; border-radius: 3px; font-size: 12px; }
+
+  /* Spec / pillar layout */
+  .spec-block {
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 22px 26px;
+    margin-bottom: 16px;
+  }
+  .spec-block h4 {
+    margin: 0 0 4px 0;
+    font-size: 16px;
+    font-weight: 600;
+    color: var(--accent);
+  }
+  .spec-block .subhead {
+    font-size: 12px;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    font-weight: 600;
+    margin-bottom: 10px;
+  }
+  .spec-block p { margin: 8px 0; color: var(--text-soft); }
+  .spec-block code { background: var(--chip-bg); padding: 1px 6px; border-radius: 3px; font-family: ui-monospace, monospace; font-size: 12.5px; }
+  .spec-block pre {
+    background: #0f172a;
+    color: #e2e8f0;
+    padding: 14px 18px;
+    border-radius: 6px;
+    font-family: ui-monospace, monospace;
+    font-size: 13px;
+    line-height: 1.5;
+    overflow-x: auto;
+  }
+  .spec-block table {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 12px 0;
+    font-size: 13.5px;
+  }
+  .spec-block th, .spec-block td {
+    text-align: left;
+    padding: 8px 12px;
+    border-bottom: 1px solid var(--border);
+    vertical-align: top;
+  }
+  .spec-block th {
+    background: var(--panel-alt);
+    font-weight: 600;
+    font-size: 12px;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    color: var(--text-muted);
+  }
+  .pillar-card {
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 20px 24px;
+    margin-bottom: 12px;
+    border-left: 4px solid;
+  }
+  .pillar-card.cr { border-left-color: var(--dim-bookings); }
+  .pillar-card.um { border-left-color: var(--dim-usage); }
+  .pillar-card.dm { border-left-color: var(--dim-deploy); }
+  .pillar-card.th { border-left-color: var(--dim-tech); }
+  .pillar-card .pillar-head {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    margin-bottom: 6px;
+  }
+  .pillar-card h4 {
+    margin: 0;
+    font-size: 17px;
+    font-weight: 650;
+  }
+  .pillar-card .weight-badge {
+    background: var(--chip-bg);
+    color: var(--text-soft);
+    padding: 2px 10px;
+    border-radius: 12px;
+    font-size: 12px;
+    font-weight: 600;
+  }
+  .pillar-card .pillar-sub {
+    font-size: 12px;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    font-weight: 600;
+    margin-bottom: 12px;
+  }
+  .pillar-card .pillar-row {
+    display: grid;
+    grid-template-columns: 130px 1fr;
+    gap: 10px;
+    margin-top: 6px;
+    font-size: 13.5px;
+  }
+  .pillar-card .pillar-row .lbl {
+    font-weight: 600;
+    color: var(--text-muted);
+    font-size: 12px;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+  }
+  .pillar-card .pillar-row .val { color: var(--text-soft); }
+
+  /* Schema flow */
+  .flow-wrap {
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 20px;
+    margin-bottom: 16px;
+    overflow-x: auto;
+  }
+  .flow-controls {
+    display: flex;
+    gap: 8px;
+    margin-bottom: 14px;
+    flex-wrap: wrap;
+    align-items: center;
+  }
+  .flow-controls .label-text {
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    margin-right: 4px;
+  }
+  .flow-btn {
+    background: var(--panel);
+    border: 1px solid var(--border-strong);
+    color: var(--text-soft);
+    padding: 6px 12px;
+    border-radius: 14px;
+    font-size: 12px;
+    font-weight: 600;
+    cursor: pointer;
+    font-family: inherit;
+    transition: all 0.15s ease;
+  }
+  .flow-btn:hover { background: var(--row-hover); }
+  .flow-btn.active { color: #fff; border-color: transparent; }
+  .flow-btn.active.all { background: var(--accent); }
+  .flow-btn.active.cr  { background: var(--dim-bookings); }
+  .flow-btn.active.um  { background: var(--dim-usage); }
+  .flow-btn.active.dm  { background: var(--dim-deploy); }
+  .flow-btn.active.th  { background: var(--dim-tech); }
+
+  svg.flow-svg {
+    display: block;
+    width: 100%;
+    min-width: 1100px;
+    height: 620px;
+    background: var(--panel-alt);
+    border-radius: 6px;
+  }
+  .node-rect {
+    fill: var(--panel);
+    stroke: var(--border-strong);
+    stroke-width: 1.5;
+    transition: opacity 0.2s ease, stroke 0.2s ease;
+  }
+  .node-rect.col-cr  { stroke: var(--dim-bookings); }
+  .node-rect.col-um  { stroke: var(--dim-usage); }
+  .node-rect.col-dm  { stroke: var(--dim-deploy); }
+  .node-rect.col-th  { stroke: var(--dim-tech); }
+  .node-rect.tbl     { fill: #f1f5f9; }
+  .node-rect.signal  { fill: #fffbeb; stroke: #d97706; }
+  .node-rect.pillar  { stroke-width: 2.5; }
+  .node-rect.avri    { fill: #1e3a8a; stroke: var(--accent-2); stroke-width: 3; }
+  .flow-link {
+    stroke-opacity: 0.55;
+    fill: none;
+    transition: opacity 0.2s ease, stroke-width 0.2s ease;
+  }
+  .flow-link.cr { stroke: var(--dim-bookings); }
+  .flow-link.um { stroke: var(--dim-usage); }
+  .flow-link.dm { stroke: var(--dim-deploy); }
+  .flow-link.th { stroke: var(--dim-tech); }
+  .flow-link.weight { stroke: var(--accent-2); stroke-dasharray: 4 3; }
+  .flow-text {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    fill: var(--text);
+    pointer-events: none;
+  }
+  .flow-text.title { font-size: 13px; font-weight: 700; }
+  .flow-text.sub { font-size: 11px; fill: var(--text-muted); }
+  .flow-text.col-header {
+    font-size: 11px; font-weight: 700;
+    fill: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+  }
+  .flow-text.avri-label {
+    fill: #fff; font-size: 18px; font-weight: 700;
+  }
+  .flow-text.avri-sub {
+    fill: #fdba74; font-size: 11px; font-weight: 600;
+  }
+  .dim-link-faded { opacity: 0.08 !important; }
+  .dim-node-faded { opacity: 0.25 !important; }
+  .schema-table {
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 14px 18px;
+    margin-bottom: 10px;
+    font-size: 13.5px;
+  }
+  .schema-table h5 {
+    margin: 0 0 6px 0;
+    font-size: 13px;
+    color: var(--accent);
+    font-weight: 700;
+    font-family: ui-monospace, monospace;
+  }
+  .schema-table ul { margin: 4px 0 0 0; padding-left: 20px; color: var(--text-soft); }
+  .schema-table ul li { margin: 2px 0; }
+  .schema-table .col-name { font-family: ui-monospace, monospace; color: var(--text); font-weight: 600; }
+  .schema-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    gap: 12px;
+    margin: 16px 0;
+  }
+  .persona-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+    gap: 12px;
+    margin: 16px 0;
+  }
+  .persona-card {
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 14px;
+    border-top: 3px solid var(--good);
+  }
+  .persona-card.bad { border-top-color: var(--bad); }
+  .persona-card.warn { border-top-color: var(--warn); }
+  .persona-card .pname { font-weight: 700; font-size: 14px; }
+  .persona-card .ppct { color: var(--text-muted); font-size: 12px; font-weight: 600; }
+  .persona-card p { margin: 6px 0 0 0; font-size: 12.5px; color: var(--text-soft); }
+
+  /* Defending Choices tab */
+  .def-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(420px, 1fr));
+    gap: 14px;
+    margin: 16px 0;
+  }
+  .def-card {
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    overflow: hidden;
+    display: grid;
+    grid-template-columns: 110px 1fr;
+  }
+  .def-num {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 14px 8px;
+    color: #fff;
+    text-align: center;
+  }
+  .def-num .v {
+    font-size: 22px;
+    font-weight: 750;
+    line-height: 1.05;
+    letter-spacing: -0.02em;
+  }
+  .def-num .vsub {
+    font-size: 10px;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    font-weight: 600;
+    opacity: 0.85;
+    margin-top: 4px;
+  }
+  .def-num.cat-weight   { background: linear-gradient(135deg, #1e40af, #2563eb); }
+  .def-num.cat-thresh   { background: linear-gradient(135deg, #c2410c, #ea580c); }
+  .def-num.cat-curve    { background: linear-gradient(135deg, #6d28d9, #7c3aed); }
+  .def-num.cat-window   { background: linear-gradient(135deg, #047857, #059669); }
+  .def-num.cat-agg      { background: linear-gradient(135deg, #0f172a, #334155); }
+  .def-num.cat-data     { background: linear-gradient(135deg, #b45309, #d97706); }
+  .def-num.cat-floor    { background: linear-gradient(135deg, #991b1b, #dc2626); }
+  .def-body {
+    padding: 14px 16px;
+    min-width: 0;
+  }
+  .def-body h4 {
+    margin: 0 0 2px 0;
+    font-size: 14.5px;
+    font-weight: 650;
+  }
+  .def-where {
+    font-size: 11px;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    font-weight: 600;
+    margin-bottom: 8px;
+  }
+  .def-row {
+    display: grid;
+    grid-template-columns: 80px 1fr;
+    gap: 8px;
+    margin-top: 6px;
+    font-size: 12.5px;
+    line-height: 1.45;
+  }
+  .def-row .lbl {
+    font-size: 10.5px;
+    font-weight: 700;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    padding-top: 1px;
+  }
+  .def-row .val { color: var(--text-soft); }
+  .def-row.defense .val {
+    color: var(--text);
+    font-style: italic;
+    border-left: 2px solid var(--accent-2);
+    padding-left: 8px;
+    background: #fff7ed;
+    padding: 6px 8px;
+    border-radius: 0 4px 4px 0;
+  }
+  .def-filters {
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 14px 18px;
+    margin-bottom: 14px;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 16px;
+    align-items: center;
+  }
+  .def-cat-pill {
+    background: var(--panel);
+    border: 1px solid var(--border-strong);
+    color: var(--text-soft);
+    padding: 5px 12px;
+    border-radius: 14px;
+    font-size: 12px;
+    font-weight: 600;
+    cursor: pointer;
+    font-family: inherit;
+  }
+  .def-cat-pill:hover { background: var(--row-hover); }
+  .def-cat-pill.active {
+    color: #fff;
+    border-color: transparent;
+  }
+  .def-cat-pill.active.all     { background: var(--accent); }
+  .def-cat-pill.active.weight  { background: #2563eb; }
+  .def-cat-pill.active.thresh  { background: #ea580c; }
+  .def-cat-pill.active.curve   { background: #7c3aed; }
+  .def-cat-pill.active.window  { background: #059669; }
+  .def-cat-pill.active.agg     { background: #334155; }
+  .def-cat-pill.active.data    { background: #d97706; }
+  .def-cat-pill.active.floor   { background: #dc2626; }
+
+  /* Inline info icon + popover */
+  .info-icon {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 16px;
+    height: 16px;
+    border-radius: 50%;
+    background: var(--accent-2);
+    color: #fff;
+    font-size: 10px;
+    font-weight: 700;
+    margin-left: 4px;
+    cursor: pointer;
+    font-family: ui-monospace, monospace;
+    line-height: 1;
+    vertical-align: middle;
+    user-select: none;
+    border: none;
+    transition: background 0.15s ease, transform 0.15s ease;
+  }
+  .info-icon:hover { background: #c2410c; transform: scale(1.1); }
+  .info-pop {
+    position: fixed;
+    background: #0f172a;
+    color: #fff;
+    border-radius: 8px;
+    padding: 14px 16px;
+    font-size: 13px;
+    line-height: 1.5;
+    max-width: 360px;
+    z-index: 100;
+    box-shadow: 0 12px 32px rgba(15,23,42,0.35);
+    border: 1px solid #334155;
+    display: none;
+  }
+  .info-pop.open { display: block; }
+  .info-pop .pop-label {
+    font-size: 10px;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: #fdba74;
+    font-weight: 700;
+    margin-bottom: 4px;
+  }
+  .info-pop .pop-value {
+    font-size: 18px;
+    font-weight: 700;
+    margin-bottom: 8px;
+    color: #fff;
+  }
+  .info-pop .pop-text { color: #cbd5e1; }
+  .info-pop .pop-text + .pop-text { margin-top: 6px; }
+  .info-pop .pop-text strong { color: #fff; }
+  .info-pop .pop-link {
+    display: block;
+    margin-top: 10px;
+    font-size: 11px;
+    color: #fdba74;
+    text-decoration: underline;
+    cursor: pointer;
+  }
+
+  /* ---------- Project Map ---------- */
+  .map-banner {
+    background: linear-gradient(135deg, #fef3c7 0%, #fde68a 100%);
+    border: 1px solid #f59e0b;
+    border-radius: 8px;
+    padding: 14px 20px;
+    margin-bottom: 20px;
+    display: flex;
+    align-items: center;
+    gap: 14px;
+  }
+  .map-banner .pulse-dot {
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
+    background: #ea580c;
+    box-shadow: 0 0 0 0 rgba(234,88,12,0.6);
+    animation: pulse 1.8s infinite;
+    flex-shrink: 0;
+  }
+  @keyframes pulse {
+    0%   { box-shadow: 0 0 0 0 rgba(234,88,12,0.6); }
+    70%  { box-shadow: 0 0 0 12px rgba(234,88,12,0); }
+    100% { box-shadow: 0 0 0 0 rgba(234,88,12,0); }
+  }
+  .map-banner .text {
+    font-size: 14px;
+    color: #78350f;
+  }
+  .map-banner .text strong { color: #422006; }
+
+  .phase-bar {
+    display: flex;
+    gap: 8px;
+    margin: 18px 0 28px;
+    border-bottom: 2px solid var(--border);
+    padding-bottom: 0;
+  }
+  .phase-bar-item {
+    flex: 1;
+    padding: 12px 14px 14px;
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-bottom: none;
+    border-radius: 8px 8px 0 0;
+    cursor: pointer;
+    text-align: left;
+    position: relative;
+    transition: all 0.15s ease;
+    font-family: inherit;
+  }
+  .phase-bar-item:hover { background: var(--row-hover); }
+  .phase-bar-item.active {
+    background: var(--accent);
+    color: #fff;
+    border-color: var(--accent);
+  }
+  .phase-bar-item .ph-num {
+    font-size: 10px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    opacity: 0.7;
+  }
+  .phase-bar-item .ph-title {
+    font-size: 13.5px;
+    font-weight: 650;
+    margin-top: 2px;
+  }
+  .phase-bar-item .ph-status {
+    font-size: 11px;
+    margin-top: 4px;
+    opacity: 0.85;
+  }
+  .phase-bar-item .ph-progress {
+    height: 4px;
+    background: rgba(0,0,0,0.08);
+    border-radius: 2px;
+    margin-top: 8px;
+    overflow: hidden;
+  }
+  .phase-bar-item .ph-progress .fill {
+    height: 100%;
+    background: var(--good);
+    transition: width 0.3s ease;
+  }
+  .phase-bar-item.active .ph-progress { background: rgba(255,255,255,0.2); }
+  .phase-bar-item.active .ph-progress .fill { background: #fdba74; }
+  .phase-bar-item.you-are-here::after {
+    content: "";
+    position: absolute;
+    top: 6px;
+    right: 8px;
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: #ea580c;
+    box-shadow: 0 0 0 0 rgba(234,88,12,0.6);
+    animation: pulse 1.8s infinite;
+  }
+
+  .step-list {
+    display: grid;
+    gap: 10px;
+  }
+  .step-card {
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    overflow: hidden;
+    transition: box-shadow 0.15s ease;
+  }
+  .step-card:hover { box-shadow: 0 2px 8px rgba(15,23,42,0.05); }
+  .step-card.you-are-here {
+    border-color: var(--accent-2);
+    box-shadow: 0 0 0 2px rgba(234,88,12,0.15);
+  }
+  .step-head {
+    display: grid;
+    grid-template-columns: 50px 28px 1fr auto;
+    gap: 12px;
+    align-items: center;
+    padding: 14px 18px;
+    cursor: pointer;
+    user-select: none;
+  }
+  .step-head:hover { background: var(--row-hover); }
+  .step-num {
+    font-family: ui-monospace, monospace;
+    font-size: 12px;
+    font-weight: 700;
+    color: var(--text-muted);
+  }
+  .step-status-icon {
+    width: 24px;
+    height: 24px;
+    border-radius: 50%;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 13px;
+    font-weight: 700;
+    color: #fff;
+    flex-shrink: 0;
+  }
+  .step-status-icon.done { background: var(--good); }
+  .step-status-icon.in-progress {
+    background: var(--accent-2);
+    animation: pulse 2s infinite;
+  }
+  .step-status-icon.pending {
+    background: #cbd5e1;
+    color: var(--text-muted);
+  }
+  .step-title {
+    font-size: 14.5px;
+    font-weight: 600;
+  }
+  .step-summary {
+    font-size: 12.5px;
+    color: var(--text-muted);
+    margin-top: 2px;
+  }
+  .step-toggle {
+    color: var(--text-muted);
+    font-size: 18px;
+    transition: transform 0.2s ease;
+  }
+  .step-card.open .step-toggle { transform: rotate(90deg); }
+  .step-body {
+    display: none;
+    padding: 0 22px 18px 92px;
+    border-top: 1px dashed var(--border);
+    background: #fafbfc;
+  }
+  .step-card.open .step-body { display: block; }
+  .step-section {
+    margin-top: 14px;
+  }
+  .step-section .label {
+    font-size: 11px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    color: var(--text-muted);
+    margin-bottom: 6px;
+  }
+  .step-section ul {
+    margin: 0;
+    padding-left: 18px;
+    color: var(--text-soft);
+    font-size: 13.5px;
+  }
+  .step-section ul li { margin: 3px 0; }
+  .step-section p { margin: 4px 0; color: var(--text-soft); font-size: 13.5px; }
+  .step-link {
+    display: inline-block;
+    background: var(--chip-bg);
+    border: 1px solid var(--border-strong);
+    color: var(--accent);
+    padding: 4px 10px;
+    border-radius: 14px;
+    font-size: 12px;
+    font-weight: 600;
+    margin: 4px 6px 0 0;
+    text-decoration: none;
+    transition: all 0.15s ease;
+    cursor: pointer;
+  }
+  .step-link:hover {
+    background: var(--accent);
+    color: #fff;
+    border-color: var(--accent);
+  }
+  .step-link.code { color: #047857; }
+  .step-link.code:hover { background: var(--good); }
+  .step-link.tab {
+    color: var(--accent-2);
+  }
+  .step-link.tab:hover { background: var(--accent-2); }
+  .step-link.ext::after { content: " ↗"; opacity: 0.6; }
+
+  .key-stat-row {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+    gap: 10px;
+    margin-top: 10px;
+  }
+  .key-stat {
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 10px 14px;
+  }
+  .key-stat .v {
+    font-size: 18px;
+    font-weight: 700;
+    color: var(--accent);
+  }
+  .key-stat .lbl {
+    font-size: 11px;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    font-weight: 600;
+    margin-top: 2px;
+  }
+  footer {
+    text-align: center;
+    padding: 30px;
+    color: var(--text-muted);
+    font-size: 12px;
+  }
+</style>
+</head>
+<body>
+
+<header class="hero">
+  <div class="tag">Pre-read · Strategy working doc</div>
+  <h1>GCS North Star Metric, Concept Primer & Metrics Explorer</h1>
+  <p>A reference for designing a health/value metric for Palo Alto Networks' Global Customer Services org as it transitions from TCV bookings to an ARR + consumption hybrid model. Use the tabs to walk the dimensions, compare existing metrics, and study the supporting concepts.</p>
+</header>
+
+<nav class="tabs">
+  <button class="tab-btn active" data-tab="map">Project Map</button>
+  <button class="tab-btn" data-tab="overview">Overview</button>
+  <button class="tab-btn" data-tab="dimensions">Four Dimensions</button>
+  <button class="tab-btn" data-tab="metrics">Metrics Explorer</button>
+  <button class="tab-btn" data-tab="concepts">Key Concepts</button>
+  <button class="tab-btn" data-tab="edge">Edge Cases</button>
+  <button class="tab-btn" data-tab="avri">AVRI Spec</button>
+  <button class="tab-btn" data-tab="data">Data Spec</button>
+  <button class="tab-btn" data-tab="flow">Schema → Metric</button>
+  <button class="tab-btn" data-tab="defending">Defending Choices</button>
+  <button class="tab-btn" data-tab="scripts">Scripts &amp; Run Guide</button>
+  <button class="tab-btn" data-tab="architecture">How It Connects</button>
+  <button class="tab-btn" data-tab="takeaways">Takeaways</button>
+</nav>
+
+<main>
+
+  <!-- PROJECT MAP, main lobby -->
+  <section id="map" class="view active">
+
+    <h2>Project Map</h2>
+    <p class="lead">The lobby. Every phase, every step, where we are now, what's been decided, and what's next. Click any step for the full detail. All other tabs are deep-dives accessible from here.</p>
+
+<div class="map-banner">
+      <div class="pulse-dot"></div>
+      <div class="text"><strong>All five phases now have shippable artifacts.</strong> Pipeline live with DQ tests. Dashboard running. Deck built (.pptx + .pdf). Demo script + Q&amp;A prep ready. Last steps: edit slide 1 tagline in your voice, run the DQ test suite locally to confirm green, push to GitHub, send the link.</div>
+    </div>
+
+    <!-- Phase tabs -->
+    <div class="phase-bar" id="phase-bar">
+      <button class="phase-bar-item" data-phase="p1">
+        <div class="ph-num">Phase 1</div>
+        <div class="ph-title">Strategy &amp; Specs</div>
+        <div class="ph-status">5 of 5 complete</div>
+        <div class="ph-progress"><div class="fill" style="width:100%"></div></div>
+      </button>
+      <button class="phase-bar-item" data-phase="p2">
+        <div class="ph-num">Phase 2</div>
+        <div class="ph-title">Data Generation</div>
+        <div class="ph-status">4 of 4 complete</div>
+        <div class="ph-progress"><div class="fill" style="width:100%"></div></div>
+      </button>
+      <button class="phase-bar-item" data-phase="p3">
+        <div class="ph-num">Phase 3</div>
+        <div class="ph-title">Metric Pipeline</div>
+        <div class="ph-status">5 of 5 complete</div>
+        <div class="ph-progress"><div class="fill" style="width:100%"></div></div>
+      </button>
+      <button class="phase-bar-item" data-phase="p4">
+        <div class="ph-num">Phase 4</div>
+        <div class="ph-title">Dashboard</div>
+        <div class="ph-status">4 of 4 built</div>
+        <div class="ph-progress"><div class="fill" style="width:100%"></div></div>
+      </button>
+      <button class="phase-bar-item active you-are-here" data-phase="p5">
+        <div class="ph-num">Phase 5</div>
+        <div class="ph-title">Presentation</div>
+        <div class="ph-status">3 of 5 complete</div>
+        <div class="ph-progress"><div class="fill" style="width:60%"></div></div>
+      </button>
+    </div>
+
+    <!-- ============================ PHASE 1 ============================ -->
+    <div class="phase-content" id="content-p1" style="display:none">
+      <h3 style="margin-top:0">Phase 1, Strategy &amp; Specs</h3>
+      <p class="lead" style="margin-bottom:14px">Frame the problem, survey the metric landscape, decide on a metric architecture, and write specs for everything downstream.</p>
+
+      <div class="step-list">
+
+        <div class="step-card">
+          <div class="step-head" data-toggle>
+            <div class="step-num">1.1</div>
+            <div class="step-status-icon done">✓</div>
+            <div>
+              <div class="step-title">Problem framing &amp; business context</div>
+              <div class="step-summary">Translate "shift from TCV to ARR + consumption hybrid" into a metric design problem.</div>
+            </div>
+            <div class="step-toggle">›</div>
+          </div>
+          <div class="step-body">
+            <div class="step-section">
+              <div class="label">Description</div>
+              <p>Studied the brief, decoded the four dimensions the metric must balance, and identified that the panel's grading rubric is really about how the metric handles the five edge cases under realistic data.</p>
+            </div>
+            <div class="step-section">
+              <div class="label">Decisions made</div>
+              <ul>
+                <li>The North Star is for the VP dashboard; CSM-level diagnostics are a separate layer.</li>
+                <li>Frame the metric as <em>value realization</em> rather than "health", ties more directly to the consumption-hybrid model.</li>
+              </ul>
+            </div>
+            <div class="step-section">
+              <div class="label">Open in</div>
+              <button class="step-link tab" data-jump-tab="overview">Overview tab</button>
+              <button class="step-link tab" data-jump-tab="dimensions">Four Dimensions tab</button>
+            </div>
+          </div>
+        </div>
+
+        <div class="step-card">
+          <div class="step-head" data-toggle>
+            <div class="step-num">1.2</div>
+            <div class="step-status-icon done">✓</div>
+            <div>
+              <div class="step-title">Existing-metrics landscape research</div>
+              <div class="step-summary">Mapped every common SaaS/CS metric against the four required dimensions. None covers all four.</div>
+            </div>
+            <div class="step-toggle">›</div>
+          </div>
+          <div class="step-body">
+            <div class="step-section">
+              <div class="label">Description</div>
+              <p>Catalogued ~30 existing metrics across commercial, consumption, technical, sentiment, and composite categories. Scored each on coverage of Bookings / Deployment / Tech Health / Sustained Usage. Documented gameability and lead/lag character.</p>
+            </div>
+            <div class="step-section">
+              <div class="label">Key finding</div>
+              <p>No standalone metric covers more than two dimensions well. Composite (Gainsight CHS pattern) is the right structure but its known gaps, no commit-vs-consume, no momentum, no edge-case treatment, define the whitespace for the proposal.</p>
+            </div>
+            <div class="step-section">
+              <div class="label">Open in</div>
+              <button class="step-link tab" data-jump-tab="metrics">Metrics Explorer</button>
+              <button class="step-link tab" data-jump-tab="concepts">Key Concepts</button>
+            </div>
+          </div>
+        </div>
+
+        <div class="step-card">
+          <div class="step-head" data-toggle>
+            <div class="step-num">1.3</div>
+            <div class="step-status-icon done">✓</div>
+            <div>
+              <div class="step-title">Metric architecture decision</div>
+              <div class="step-summary">Composite index, four pillars 1:1 with required dimensions, transparent rules-based scoring.</div>
+            </div>
+            <div class="step-toggle">›</div>
+          </div>
+          <div class="step-body">
+            <div class="step-section">
+              <div class="label">Decisions made</div>
+              <ul>
+                <li><strong>Composite over single metric.</strong> Brief explicitly asks the metric to "balance" four dimensions, single raw metrics can't.</li>
+                <li><strong>Rules-based, not ML.</strong> Explainability matters for comp plans; black-box churn predictors are rejected by reps.</li>
+                <li><strong>Inductive build order.</strong> Generate realistic data first, observe where existing metrics fail, refine proposed metric in response. Stronger narrative than designing the metric and engineering data to validate it.</li>
+                <li><strong>Floor rule on Tech Health.</strong> Linear weighted averages are substitutable; tech-health should not be averageable away.</li>
+              </ul>
+            </div>
+            <div class="step-section">
+              <div class="label">Assumption</div>
+              <p>Synthetic data without license, ticket, or NPS columns means Deployment Maturity and Tech Health pillars must run on proxies (active-day breadth, health_color decay). v1 in production would replace these.</p>
+            </div>
+          </div>
+        </div>
+
+        <div class="step-card">
+          <div class="step-head" data-toggle>
+            <div class="step-num">1.4</div>
+            <div class="step-status-icon done">✓</div>
+            <div>
+              <div class="step-title">AVRI metric specification</div>
+              <div class="step-summary">Four pillars, weights, score curves, RAG thresholds, edge case behavior, aggregation rules.</div>
+            </div>
+            <div class="step-toggle">›</div>
+          </div>
+          <div class="step-body">
+            <div class="step-section">
+              <div class="label">Output</div>
+              <p>One-page-plus markdown spec defining the AVRI formula, the piecewise CR curve, the UM momentum ratio, the floor rule, and the dollar-weighted rollup. Every numeric choice is justified in the Defending Choices tab.</p>
+            </div>
+            <div class="step-section">
+              <div class="label">Key parameters locked (v0)</div>
+              <div class="key-stat-row">
+                <div class="key-stat"><div class="v">30/30/20/20</div><div class="lbl">CR/UM/DM/TH weights</div></div>
+                <div class="key-stat"><div class="v">≥75 / 50 / &lt;50</div><div class="lbl">G / Y / R thresholds</div></div>
+                <div class="key-stat"><div class="v">90d &amp; 12mo</div><div class="lbl">Recent / baseline windows</div></div>
+                <div class="key-stat"><div class="v">TH&lt;30 → cap 50</div><div class="lbl">Floor rule</div></div>
+              </div>
+            </div>
+            <div class="step-section">
+              <div class="label">Open in</div>
+              <button class="step-link tab" data-jump-tab="avri">AVRI Spec tab</button>
+              <button class="step-link tab" data-jump-tab="defending">Defending Choices tab</button>
+              <a class="step-link ext" href="specs/metric_v0.md" target="_blank">specs/metric_v0.md</a>
+            </div>
+          </div>
+        </div>
+
+        <div class="step-card">
+          <div class="step-head" data-toggle>
+            <div class="step-num">1.5</div>
+            <div class="step-status-icon done">✓</div>
+            <div>
+              <div class="step-title">Data generation specification</div>
+              <div class="step-summary">Schemas, distributions, persona mix, time-series shapes, edge case injection logic.</div>
+            </div>
+            <div class="step-toggle">›</div>
+          </div>
+          <div class="step-body">
+            <div class="step-section">
+              <div class="label">Output</div>
+              <p>Full markdown spec covering all 5 tables, persona-driven consumption shapes, weekday/weekend seasonality, industry seasonality (Retail Q4 spike, Education summer dip), Markov-chain health colors, and explicit edge case injection (orphans, mid-year expansion, shelfware, spike-drop, overage).</p>
+            </div>
+            <div class="step-section">
+              <div class="label">Key decision</div>
+              <p>Single seed (<code>SEED = 20260422</code>) for full reproducibility. Pre-write validation gates abort the run on any structural problem.</p>
+            </div>
+            <div class="step-section">
+              <div class="label">Open in</div>
+              <button class="step-link tab" data-jump-tab="data">Data Spec tab</button>
+              <button class="step-link tab" data-jump-tab="edge">Edge Cases tab</button>
+              <button class="step-link tab" data-jump-tab="flow">Schema → Metric flow</button>
+              <a class="step-link ext" href="specs/data_generation_spec.md" target="_blank">specs/data_generation_spec.md</a>
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+
+    <!-- ============================ PHASE 2 ============================ -->
+    <div class="phase-content" id="content-p2" style="display:none">
+      <h3 style="margin-top:0">Phase 2, Data Generation</h3>
+      <p class="lead" style="margin-bottom:14px">Build the synthetic dataset to spec, validate it, and load it to BigQuery so downstream queries can run against the cloud target the brief requires.</p>
+
+      <div class="step-list">
+        <div class="step-card">
+          <div class="step-head" data-toggle>
+            <div class="step-num">2.x</div>
+            <div class="step-status-icon done">✓</div>
+            <div>
+              <div class="step-title">All 4 steps complete</div>
+              <div class="step-summary">Generator built, data loaded to BigQuery, validation passed. See data_generation/ + load_to_bigquery.py.</div>
+            </div>
+            <div class="step-toggle">›</div>
+          </div>
+          <div class="step-body">
+            <div class="step-section">
+              <div class="label">Tables in BigQuery</div>
+              <div class="key-stat-row">
+                <div class="key-stat"><div class="v">50</div><div class="lbl">csm_rep</div></div>
+                <div class="key-stat"><div class="v">1,000</div><div class="lbl">accounts</div></div>
+                <div class="key-stat"><div class="v">1,050</div><div class="lbl">contracts</div></div>
+                <div class="key-stat"><div class="v">~294K</div><div class="lbl">daily_usage_logs</div></div>
+                <div class="key-stat"><div class="v">~33K</div><div class="lbl">account_health</div></div>
+              </div>
+            </div>
+            <div class="step-section">
+              <div class="label">Pitfalls hit + resolved</div>
+              <ul>
+                <li>numpy Generator can't sample 128-bit integers (UUID generation), composed two 64-bit draws.</li>
+                <li>Persona distribution sampling variance ±2pp too tight at N=1000, loosened to ±3pp.</li>
+                <li>Parquet datetime64[ns] vs BigQuery DATE INT32 mismatch, converted via .dt.date.</li>
+                <li>BigQuery LoadJobConfig schema_update_options incompatible with WRITE_TRUNCATE, removed.</li>
+                <li>gcloud auth login vs application-default login confusion, only the second writes ADC for SDKs.</li>
+              </ul>
+              <a class="step-link ext" href="specs/lessons_learned.md" target="_blank">specs/lessons_learned.md</a>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ============================ PHASE 2, original (replaced) ============================ -->
+    <div class="phase-content" id="content-p2_OLD" style="display:none">
+      <h3 style="margin-top:0">Phase 2, Data Generation</h3>
+      <p class="lead" style="margin-bottom:14px">Build the synthetic dataset to spec, validate it, and load it to BigQuery so downstream queries can run against the cloud target the brief requires.</p>
+
+      <div class="step-list">
+
+        <div class="step-card">
+          <div class="step-head" data-toggle>
+            <div class="step-num">2.1</div>
+            <div class="step-status-icon done">✓</div>
+            <div>
+              <div class="step-title">Python data generator (modular build)</div>
+              <div class="step-summary">5 modules, config, personas, generate, validators, main, orchestrated end-to-end.</div>
+            </div>
+            <div class="step-toggle">›</div>
+          </div>
+          <div class="step-body">
+            <div class="step-section">
+              <div class="label">Description</div>
+              <p>Five-file Python package generating all 5 tables with persona-driven time series, Markov-chain health colors, and explicit edge case injection. Single-seed reproducibility. Faker for names/companies, numpy/pandas for everything else, pyarrow for Parquet output.</p>
+            </div>
+            <div class="step-section">
+              <div class="label">Architectural decisions</div>
+              <ul>
+                <li>All tunable parameters in <code>config.py</code>, re-tuning the data does not require touching generation logic.</li>
+                <li>Internal columns (<code>_persona</code>, <code>_segment</code>) are dropped before persistence, pipeline must detect anomalies from the data alone.</li>
+                <li>Validation gates run pre-write; generation aborts on any structural failure.</li>
+              </ul>
+            </div>
+            <div class="step-section">
+              <div class="label">Run</div>
+              <p style="font-family:ui-monospace,monospace; background:#0f172a; color:#e2e8f0; padding:8px 12px; border-radius:4px; font-size:12.5px;">cd data_generation &amp;&amp; pip install -r requirements.txt &amp;&amp; python main.py</p>
+            </div>
+            <div class="step-section">
+              <div class="label">Files</div>
+              <a class="step-link code ext" href="data_generation/main.py" target="_blank">main.py</a>
+              <a class="step-link code ext" href="data_generation/config.py" target="_blank">config.py</a>
+              <a class="step-link code ext" href="data_generation/personas.py" target="_blank">personas.py</a>
+              <a class="step-link code ext" href="data_generation/generate.py" target="_blank">generate.py</a>
+              <a class="step-link code ext" href="data_generation/validators.py" target="_blank">validators.py</a>
+              <a class="step-link code ext" href="data_generation/requirements.txt" target="_blank">requirements.txt</a>
+            </div>
+          </div>
+        </div>
+
+        <div class="step-card">
+          <div class="step-head" data-toggle>
+            <div class="step-num">2.2</div>
+            <div class="step-status-icon done">✓</div>
+            <div>
+              <div class="step-title">Local data output + validation</div>
+              <div class="step-summary">5 Parquet files generated and validation gates passed.</div>
+            </div>
+            <div class="step-toggle">›</div>
+          </div>
+          <div class="step-body">
+            <div class="step-section">
+              <div class="label">Output</div>
+              <div class="key-stat-row">
+                <div class="key-stat"><div class="v">50</div><div class="lbl">csm_rep</div></div>
+                <div class="key-stat"><div class="v">1,000</div><div class="lbl">accounts</div></div>
+                <div class="key-stat"><div class="v">1,050</div><div class="lbl">contracts (incl. 50 expansions)</div></div>
+                <div class="key-stat"><div class="v">~294K</div><div class="lbl">daily_usage_logs (incl. 300 rogue)</div></div>
+                <div class="key-stat"><div class="v">~33K</div><div class="lbl">account_health (weekly)</div></div>
+                <div class="key-stat"><div class="v">~12 MB</div><div class="lbl">total Parquet size</div></div>
+              </div>
+            </div>
+            <div class="step-section">
+              <div class="label">Validation passed</div>
+              <ul>
+                <li>Row counts within ±5% of targets ✓</li>
+                <li>Persona distribution within ±3pp ✓</li>
+                <li>Contract FK integrity ✓</li>
+                <li>150 orphan logs detected ✓</li>
+                <li>150 out-of-window logs detected ✓</li>
+                <li>50 mid-year expansion accounts (overlapping contracts) ✓</li>
+              </ul>
+            </div>
+            <div class="step-section">
+              <div class="label">Output files</div>
+              <a class="step-link code ext" href="data_generation/output/manifest.json" target="_blank">manifest.json</a>
+              <a class="step-link code ext" href="data_generation/output/csm_rep.parquet" target="_blank">csm_rep.parquet</a>
+              <a class="step-link code ext" href="data_generation/output/accounts.parquet" target="_blank">accounts.parquet</a>
+              <a class="step-link code ext" href="data_generation/output/contracts.parquet" target="_blank">contracts.parquet</a>
+              <a class="step-link code ext" href="data_generation/output/daily_usage_logs.parquet" target="_blank">daily_usage_logs.parquet</a>
+              <a class="step-link code ext" href="data_generation/output/account_health.parquet" target="_blank">account_health.parquet</a>
+            </div>
+          </div>
+        </div>
+
+        <div class="step-card you-are-here">
+          <div class="step-head" data-toggle>
+            <div class="step-num">2.3</div>
+            <div class="step-status-icon in-progress">⟳</div>
+            <div>
+              <div class="step-title">BigQuery upload (next)</div>
+              <div class="step-summary">Load 5 Parquet files to BigQuery Sandbox so downstream metric queries run against the brief's required target.</div>
+            </div>
+            <div class="step-toggle">›</div>
+          </div>
+          <div class="step-body">
+            <div class="step-section">
+              <div class="label">Plan</div>
+              <ul>
+                <li>Provision BigQuery Sandbox (free tier, no billing). Note the project ID.</li>
+                <li>Run <code>gcloud auth application-default login</code> for ADC.</li>
+                <li>Build <code>data_generation/load_to_bigquery.py</code>: creates <code>gcs_north_star</code> dataset, loads each table with explicit schema, verifies row counts.</li>
+              </ul>
+            </div>
+            <div class="step-section">
+              <div class="label">Decision pending</div>
+              <p>Whether downstream pipeline reads from BigQuery directly or develops against local Parquet first and tests against BQ at the end. Local-first is faster to iterate.</p>
+            </div>
+          </div>
+        </div>
+
+        <div class="step-card">
+          <div class="step-head" data-toggle>
+            <div class="step-num">2.4</div>
+            <div class="step-status-icon pending">○</div>
+            <div>
+              <div class="step-title">BigQuery dataset documentation</div>
+              <div class="step-summary">README in pipeline_and_tests covering BQ project ID, dataset name, table schemas, refresh cadence.</div>
+            </div>
+            <div class="step-toggle">›</div>
+          </div>
+          <div class="step-body">
+            <div class="step-section">
+              <div class="label">Output</div>
+              <p>Short markdown documenting BQ destination, how to re-load, and table schemas as DDL.</p>
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+
+    <!-- ============================ PHASE 3 ============================ -->
+    <div class="phase-content" id="content-p3">
+      <h3 style="margin-top:0">Phase 3, Metric Pipeline &amp; DQ Tests</h3>
+      <p class="lead" style="margin-bottom:14px">Compute every existing metric and AVRI from BigQuery. Use the inductive comparison to refine AVRI. Add automated DQ tests for the brief's anomalies.</p>
+
+      <div class="step-list">
+
+        <div class="step-card">
+          <div class="step-head" data-toggle>
+            <div class="step-num">3.1</div>
+            <div class="step-status-icon done">✓</div>
+            <div>
+              <div class="step-title">"Metrics Zoo" implemented</div>
+              <div class="step-summary">TCV, ARR, raw utilization, latest health color, naive Gainsight-style CHS, one row per account.</div>
+            </div>
+            <div class="step-toggle">›</div>
+          </div>
+          <div class="step-body">
+            <div class="step-section">
+              <div class="label">Output table</div>
+              <p><code>panw-gcs-northstar.gcs_north_star.metrics_existing_account</code></p>
+            </div>
+            <div class="step-section">
+              <div class="label">Files</div>
+              <a class="step-link code ext" href="pipeline_and_tests/sql/existing_metrics/metrics_existing_account.sql" target="_blank">metrics_existing_account.sql</a>
+            </div>
+          </div>
+        </div>
+
+        <div class="step-card">
+          <div class="step-head" data-toggle>
+            <div class="step-num">3.2</div>
+            <div class="step-status-icon done">✓</div>
+            <div>
+              <div class="step-title">AVRI pipeline (account → CSM → region)</div>
+              <div class="step-summary">Four pillars, composite, floor rule, dollar-weighted rollups. Pure SQL, idempotent.</div>
+            </div>
+            <div class="step-toggle">›</div>
+          </div>
+          <div class="step-body">
+            <div class="step-section">
+              <div class="label">Output tables</div>
+              <ul>
+                <li><code>avri_account</code></li>
+                <li><code>avri_csm</code></li>
+                <li><code>avri_region</code></li>
+              </ul>
+            </div>
+            <div class="step-section">
+              <div class="label">Files</div>
+              <a class="step-link code ext" href="pipeline_and_tests/run_pipeline.py" target="_blank">run_pipeline.py</a>
+              <a class="step-link code ext" href="pipeline_and_tests/sql/avri/avri_account.sql" target="_blank">avri_account.sql</a>
+              <a class="step-link code ext" href="pipeline_and_tests/sql/avri/avri_csm.sql" target="_blank">avri_csm.sql</a>
+              <a class="step-link code ext" href="pipeline_and_tests/sql/avri/avri_region.sql" target="_blank">avri_region.sql</a>
+            </div>
+          </div>
+        </div>
+
+        <div class="step-card">
+          <div class="step-head" data-toggle>
+            <div class="step-num">3.3</div>
+            <div class="step-status-icon done">✓</div>
+            <div>
+              <div class="step-title">Inspection, where existing metrics fail</div>
+              <div class="step-summary">9-section markdown report comparing AVRI to naive CHS on the same accounts. Surfaced the in-scope filter issue.</div>
+            </div>
+            <div class="step-toggle">›</div>
+          </div>
+          <div class="step-body">
+            <div class="step-section">
+              <div class="label">Key findings</div>
+              <ul>
+                <li><strong>Shelfware story validated.</strong> ACC-00202 ($3.5M Financial Services, 0 active days), naive CHS=40 (yellow-ish), AVRI=19.5 (deep red).</li>
+                <li><strong>Floor rule firing as designed.</strong> ACC-00226 ($8M Tech, 130% util, TH=15), without floor rule AVRI=86 (Green); with rule, capped at 50 (Yellow).</li>
+                <li><strong>Pipeline scope bug surfaced.</strong> Inactive-contract accounts being scored as 0s polluted distributions, fixed in v1.</li>
+              </ul>
+            </div>
+            <div class="step-section">
+              <div class="label">Open in</div>
+              <a class="step-link ext" href="specs/inspection_findings.md" target="_blank">inspection_findings.md</a>
+              <a class="step-link code ext" href="pipeline_and_tests/inspection.py" target="_blank">inspection.py</a>
+            </div>
+          </div>
+        </div>
+
+        <div class="step-card you-are-here">
+          <div class="step-head" data-toggle>
+            <div class="step-num">3.4</div>
+            <div class="step-status-icon in-progress">⟳</div>
+            <div>
+              <div class="step-title">AVRI v1, refined post-inspection</div>
+              <div class="step-summary">Pipeline now filters to in-scope accounts only. Re-run pending; spec drafted.</div>
+            </div>
+            <div class="step-toggle">›</div>
+          </div>
+          <div class="step-body">
+            <div class="step-section">
+              <div class="label">v1 changes</div>
+              <ul>
+                <li><strong>Scope filter:</strong> AVRI only computed for accounts with ≥1 active contract on as-of date (was: every row in <code>accounts</code>).</li>
+                <li>Same filter applied to <code>metrics_existing_account</code> for apples-to-apples comparison.</li>
+                <li>No formula changes, pillars, weights, RAG thresholds, floor rule all retained from v0.</li>
+              </ul>
+            </div>
+            <div class="step-section">
+              <div class="label">User action</div>
+              <p>Re-run <code>python run_pipeline.py</code> then <code>python inspection.py</code> on your machine.</p>
+            </div>
+            <div class="step-section">
+              <div class="label">Open in</div>
+              <a class="step-link ext" href="specs/metric_v1.md" target="_blank">specs/metric_v1.md</a>
+              <a class="step-link ext" href="specs/lessons_learned.md" target="_blank">lessons_learned.md</a>
+            </div>
+          </div>
+        </div>
+
+        <div class="step-card">
+          <div class="step-head" data-toggle>
+            <div class="step-num">3.5</div>
+            <div class="step-status-icon done">✓</div>
+            <div>
+              <div class="step-title">Automated DQ tests (pytest)</div>
+              <div class="step-summary">22 assertions across 4 sections, schema sanity, FK integrity, anomaly detection (orphans/out-of-window/overlapping contracts), pipeline output integrity.</div>
+            </div>
+            <div class="step-toggle">›</div>
+          </div>
+          <div class="step-body">
+            <div class="step-section">
+              <div class="label">What it covers</div>
+              <ul>
+                <li><strong>Schema sanity:</strong> ID uniqueness; non-negative numerics; date ordering; valid color enums.</li>
+                <li><strong>FK integrity:</strong> contracts → accounts, account_health → accounts, accounts → csm_rep all resolve.</li>
+                <li><strong>Anomaly detection (brief-required):</strong> ~150 orphan usage logs detected; ~150 out-of-window logs detected; ~50 accounts with overlapping contracts (mid-year expansion).</li>
+                <li><strong>Pipeline output integrity:</strong> AVRI scores in [0,100]; color values constrained; rollup totals reconcile.</li>
+              </ul>
+            </div>
+            <div class="step-section">
+              <div class="label">Run</div>
+              <p style="font-family:ui-monospace,monospace; background:#0f172a; color:#e2e8f0; padding:8px 12px; border-radius:4px; font-size:12.5px;">cd pipeline_and_tests &amp;&amp; pytest -v</p>
+            </div>
+            <div class="step-section">
+              <div class="label">Files</div>
+              <a class="step-link code ext" href="pipeline_and_tests/test_data_quality.py" target="_blank">test_data_quality.py</a>
+              <a class="step-link code ext" href="pipeline_and_tests/conftest.py" target="_blank">conftest.py</a>
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+
+    <!-- ============================ PHASE 4 ============================ -->
+    <div class="phase-content" id="content-p4" style="display:none">
+      <h3 style="margin-top:0">Phase 4, Dashboard</h3>
+      <p class="lead" style="margin-bottom:14px">Lightweight Streamlit prototype connected to the BigQuery output. Lets an exec view AVRI by Region and Sales Rep and drill into any account.</p>
+
+      <div class="step-list">
+
+        <div class="step-card">
+          <div class="step-head" data-toggle>
+            <div class="step-num">4.1</div>
+            <div class="step-status-icon pending">○</div>
+            <div>
+              <div class="step-title">Streamlit scaffold + BQ connection</div>
+              <div class="step-summary">Project skeleton, BQ client, basic auth, deploy plan.</div>
+            </div>
+            <div class="step-toggle">›</div>
+          </div>
+          <div class="step-body"><div class="step-section"><p>Stack chosen: Streamlit. Fastest path to a working interactive dashboard for a non-technical audience.</p></div></div>
+        </div>
+
+        <div class="step-card">
+          <div class="step-head" data-toggle>
+            <div class="step-num">4.2</div>
+            <div class="step-status-icon pending">○</div>
+            <div>
+              <div class="step-title">Region / CSM rollup view (required by brief)</div>
+              <div class="step-summary">AVRI by Region, drillable to CSM. RAG-colored, dollar-weighted.</div>
+            </div>
+            <div class="step-toggle">›</div>
+          </div>
+          <div class="step-body"><div class="step-section"><p>The view the brief explicitly asks for. This is the table-stakes deliverable.</p></div></div>
+        </div>
+
+        <div class="step-card">
+          <div class="step-head" data-toggle>
+            <div class="step-num">4.3</div>
+            <div class="step-status-icon pending">○</div>
+            <div>
+              <div class="step-title">Account drill-down view</div>
+              <div class="step-summary">Pick an account; see AVRI + all four pillars + every existing metric on the same time axis.</div>
+            </div>
+            <div class="step-toggle">›</div>
+          </div>
+          <div class="step-body"><div class="step-section"><p>The bonus view that wins the demo. Visually shows where existing metrics lie about the same account that AVRI scores correctly.</p></div></div>
+        </div>
+
+        <div class="step-card">
+          <div class="step-head" data-toggle>
+            <div class="step-num">4.4</div>
+            <div class="step-status-icon pending">○</div>
+            <div>
+              <div class="step-title">"Metrics Zoo" comparison view</div>
+              <div class="step-summary">Side-by-side scorecard showing how each metric ranks the same set of accounts.</div>
+            </div>
+            <div class="step-toggle">›</div>
+          </div>
+          <div class="step-body"><div class="step-section"><p>The argument view. Used live during the deck demo to make the "no single metric works" case visual.</p></div></div>
+        </div>
+
+      </div>
+    </div>
+
+    <!-- ============================ PHASE 5 ============================ -->
+    <div class="phase-content" id="content-p5" style="display:none">
+      <h3 style="margin-top:0">Phase 5, Executive Presentation</h3>
+      <p class="lead" style="margin-bottom:14px">6-slide deck + live dashboard demo + Q&amp;A prep. Final submission to recruiter.</p>
+
+      <div class="step-list">
+
+        <div class="step-card">
+          <div class="step-head" data-toggle>
+            <div class="step-num">5.1</div>
+            <div class="step-status-icon done">✓</div>
+            <div>
+              <div class="step-title">Deck outline (markdown)</div>
+              <div class="step-summary">6-slide structure with speaker notes per slide; backup slides for Q&amp;A.</div>
+            </div>
+            <div class="step-toggle">›</div>
+          </div>
+          <div class="step-body"><div class="step-section">
+            <a class="step-link ext" href="specs/deck_outline.md" target="_blank">specs/deck_outline.md</a>
+          </div></div>
+        </div>
+
+        <div class="step-card">
+          <div class="step-head" data-toggle>
+            <div class="step-num">5.2</div>
+            <div class="step-status-icon done">✓</div>
+            <div>
+              <div class="step-title">Slide build (.pptx + .pdf)</div>
+              <div class="step-summary">Custom navy + PANW-orange palette. Native shapes, no images, fully editable.</div>
+            </div>
+            <div class="step-toggle">›</div>
+          </div>
+          <div class="step-body"><div class="step-section">
+            <a class="step-link ext" href="AVRI_Deck.pptx" target="_blank">AVRI_Deck.pptx</a>
+            <a class="step-link ext" href="AVRI_Deck.pdf" target="_blank">AVRI_Deck.pdf</a>
+          </div>
+          <div class="step-section">
+            <div class="label">Pre-presentation edits</div>
+            <ul>
+              <li>Slide 1 tagline, replace with your voice if mine doesn't fit</li>
+              <li>Slide 5 LIVE DEMO callout, fill in the actual <code>$X.XM at risk</code> from your latest dashboard load</li>
+              <li>Slide 6 lessons, swap in your personal takeaways</li>
+            </ul>
+          </div>
+          </div>
+        </div>
+
+        <div class="step-card you-are-here">
+          <div class="step-head" data-toggle>
+            <div class="step-num">5.3</div>
+            <div class="step-status-icon done">✓</div>
+            <div>
+              <div class="step-title">Demo script + Q&amp;A prep</div>
+              <div class="step-summary">6-section runbook: pre-flight checklist, slide-by-slide script, dashboard demo flow, 12 anticipated Q&amp;A with scripted responses, tactical advice.</div>
+            </div>
+            <div class="step-toggle">›</div>
+          </div>
+          <div class="step-body"><div class="step-section">
+            <a class="step-link ext" href="specs/demo_script_and_qa.md" target="_blank">specs/demo_script_and_qa.md</a>
+            <button class="step-link tab" data-jump-tab="defending">Defending Choices tab</button>
+          </div></div>
+        </div>
+
+        <div class="step-card">
+          <div class="step-head" data-toggle>
+            <div class="step-num">5.4</div>
+            <div class="step-status-icon pending">○</div>
+            <div>
+              <div class="step-title">Final repo polish</div>
+              <div class="step-summary">Remove the temporary deck-build folder, tidy READMEs, verify README structure matches brief's required folders.</div>
+            </div>
+            <div class="step-toggle">›</div>
+          </div>
+          <div class="step-body"><div class="step-section"><p>Brief requires GitHub repo with: /data_generation, /specs, /pipeline_and_tests, /dashboard, README, PDF deck. All present, just polish before pushing.</p></div></div>
+        </div>
+
+        <div class="step-card">
+          <div class="step-head" data-toggle>
+            <div class="step-num">5.5</div>
+            <div class="step-status-icon pending">○</div>
+            <div>
+              <div class="step-title">Submission</div>
+              <div class="step-summary">Push to GitHub, send link to Saranya.</div>
+            </div>
+            <div class="step-toggle">›</div>
+          </div>
+          <div class="step-body"><div class="step-section"><p>Final hand-off.</p></div></div>
+        </div>
+
+      </div>
+    </div>
+
+  </section>
+
+  <!-- OVERVIEW -->
+  <section id="overview" class="view">
+    <h2>The problem in one paragraph</h2>
+    <p class="lead">
+      PANW's Global Customer Services org is shifting from a <strong>Total Contract Value (TCV)</strong> sales model, where reps are credited on the full multi-year dollar value at signing, to an <strong>ARR + consumption hybrid</strong>, where revenue arrives only if customers actively use what they bought. This breaks the old incentive system: a rep can close a massive TCV deal and walk away, but in the new world, a deal that never gets deployed or consumed is a future churn event. Leadership needs a <em>North Star metric</em> that fairly measures success across four things at once, booking the contract, deploying the product, keeping it technically healthy, and sustaining usage over the customer's lifecycle.
+    </p>
+
+    <h3>What this document does</h3>
+    <p class="lead">
+      It is a working reference for designing that metric. It (1) defines the four dimensions the North Star must balance, (2) enumerates every major existing metric in the SaaS/CS landscape and scores how well each covers those dimensions, (3) explains the underlying concepts you need to defend design choices in Q&A, (4) lays out the five messy-data edge cases the brief calls out, and (5) distills the case for a composite index.
+    </p>
+
+    <h3>How to use it</h3>
+    <p class="lead">
+      Read Four Dimensions first, everything else depends on those definitions. Then open the Metrics Explorer and sort/filter to pressure-test any metric you're considering. Key Concepts is the "why it's true" layer for anything the interview panel might challenge. Edge Cases are the specific traps your metric design must handle.
+    </p>
+  </section>
+
+  <!-- FOUR DIMENSIONS -->
+  <section id="dimensions" class="view">
+    <h2>The four dimensions the North Star must balance</h2>
+    <p class="lead">These come directly from the case brief: <em>"balances initial contract bookings, full deployment of the products purchased, technically healthy and sustained platform usage over a customer's lifecycle."</em></p>
+
+    <div class="dim-grid">
+
+      <div class="dim-card bookings">
+        <h4>1. Initial Contract Bookings</h4>
+        <div class="subtitle">The dollars committed</div>
+        <div class="field">
+          <div class="field-label">Definition</div>
+          <div class="field-body">The commercial commitment the customer signs, the size of the handshake. Historically captured as TCV; in the new model, a blend of ARR + consumption commit (annual committed credits/dollars).</div>
+        </div>
+        <div class="field">
+          <div class="field-label">Why it matters</div>
+          <div class="field-body">Bookings fund the business and set the <em>ceiling</em> for everything downstream. You can't consume what wasn't purchased. This dimension keeps the revenue engine accountable.</div>
+        </div>
+        <div class="field">
+          <div class="field-label">"Good" looks like</div>
+          <div class="field-body">Multi-year commitment right-sized to the customer's actual capacity plan, not oversold, not under-provisioned.</div>
+        </div>
+        <div class="field">
+          <div class="field-label">Pitfall</div>
+          <div class="field-body">Rewarding this alone (the old TCV world) incentivizes over-selling and shelfware.</div>
+        </div>
+      </div>
+
+      <div class="dim-card deploy">
+        <h4>2. Full Deployment</h4>
+        <div class="subtitle">The product is stood up</div>
+        <div class="field">
+          <div class="field-label">Definition</div>
+          <div class="field-body">The degree to which the customer has actually provisioned licenses, configured the product, integrated it into their environment, and operationalized it across the intended user base.</div>
+        </div>
+        <div class="field">
+          <div class="field-label">Why it matters</div>
+          <div class="field-body">Undeployed product cannot produce value, cannot generate consumption, and almost never renews. Deployment is the bridge from <em>sale</em> to <em>usage</em>.</div>
+        </div>
+        <div class="field">
+          <div class="field-label">"Good" looks like</div>
+          <div class="field-body">Licenses provisioned, integrations live, key feature milestones hit within a reasonable window (e.g., 60–90 days), broad reach across the buyer's intended team.</div>
+        </div>
+        <div class="field">
+          <div class="field-label">Pitfall</div>
+          <div class="field-body">"Logo logged in once" gets mistaken for deployment. License provisioning is necessary but not sufficient.</div>
+        </div>
+      </div>
+
+      <div class="dim-card tech">
+        <h4>3. Technical Health</h4>
+        <div class="subtitle">The product works well</div>
+        <div class="field">
+          <div class="field-label">Definition</div>
+          <div class="field-body">The stability and quality of the customer's experience, support burden, severity distribution of tickets, SLA attainment, active escalations.</div>
+        </div>
+        <div class="field">
+          <div class="field-label">Why it matters</div>
+          <div class="field-body">A heavily-consumed, fully-deployed product can still be a churn risk if it's causing operational pain. Tech health is the hygiene layer, easy to ignore when green, devastating when red.</div>
+        </div>
+        <div class="field">
+          <div class="field-label">"Good" looks like</div>
+          <div class="field-body">Low Sev-1/Sev-2 rate, SLAs met, zero active exec escalations, declining ticket trend as deployment matures.</div>
+        </div>
+        <div class="field">
+          <div class="field-label">Pitfall</div>
+          <div class="field-body">Ticket volume alone is ambiguous, heavy users open more tickets. Must weight by severity and look at trajectory.</div>
+        </div>
+      </div>
+
+      <div class="dim-card usage">
+        <h4>4. Sustained Platform Usage</h4>
+        <div class="subtitle">The customer keeps using it</div>
+        <div class="field">
+          <div class="field-label">Definition</div>
+          <div class="field-body">Ongoing, durable consumption and engagement across the customer's lifecycle, not just at onboarding. Captures both <em>level</em> (is usage high enough?) and <em>trend</em> (is it growing or decaying?).</div>
+        </div>
+        <div class="field">
+          <div class="field-label">Why it matters</div>
+          <div class="field-body">In a consumption-hybrid model, revenue arrives only if usage flows. This is the strongest <em>leading</em> indicator of renewal and expansion.</div>
+        </div>
+        <div class="field">
+          <div class="field-label">"Good" looks like</div>
+          <div class="field-body">Consumption trending flat or up, stickiness (DAU/MAU) strong, feature depth increasing, usage spread across users and workloads rather than concentrated.</div>
+        </div>
+        <div class="field">
+          <div class="field-label">Pitfall</div>
+          <div class="field-body">Raw utilization snapshots miss trajectory. An account burning 95% of credits might be spike-and-drop masquerading as healthy.</div>
+        </div>
+      </div>
+
+    </div>
+  </section>
+
+  <!-- METRICS EXPLORER -->
+  <section id="metrics" class="view">
+    <h2>Metrics Explorer <span class="count-badge" id="count"></span></h2>
+    <p class="lead">Every widely-used SaaS/CS metric, scored against the four dimensions. Click any row for detail. Filter by category, by dimension coverage, or search by name.</p>
+
+    <div class="filters">
+      <div class="filter-group">
+        <label>Category</label>
+        <select id="f-category">
+          <option value="all">All</option>
+          <option value="Commercial">Commercial / Revenue</option>
+          <option value="Consumption">Consumption / Adoption</option>
+          <option value="Technical">Technical Health</option>
+          <option value="Sentiment">Sentiment / Relationship</option>
+          <option value="Composite">Composite / Index</option>
+        </select>
+      </div>
+      <div class="filter-group">
+        <label>Covers dimension</label>
+        <select id="f-dim">
+          <option value="all">Any</option>
+          <option value="bookings">Bookings</option>
+          <option value="deployment">Deployment</option>
+          <option value="tech">Technical Health</option>
+          <option value="usage">Sustained Usage</option>
+        </select>
+      </div>
+      <div class="filter-group">
+        <label>Lead/Lag</label>
+        <select id="f-ll">
+          <option value="all">Either</option>
+          <option value="Lead">Leading</option>
+          <option value="Lag">Lagging</option>
+        </select>
+      </div>
+      <div class="filter-group">
+        <label>Search</label>
+        <input type="text" id="f-search" placeholder="Name or keyword…" />
+      </div>
+      <label class="toggle">
+        <input type="checkbox" id="t-game" />
+        Show gameability
+      </label>
+    </div>
+
+    <div class="legend">
+      <div class="legend-item"><span class="cov-dot full" style="color:#2563eb"></span> Full coverage</div>
+      <div class="legend-item"><span class="cov-dot partial" style="color:#2563eb"></span> Partial</div>
+      <div class="legend-item"><span class="cov-dot none" style="color:#2563eb"></span> None</div>
+      <div class="legend-item" style="margin-left:auto"><em>Click any row for full detail</em></div>
+    </div>
+
+    <div class="metrics-table-wrap">
+      <table class="metrics" id="metrics-table">
+        <colgroup id="metrics-colgroup">
+          <col style="width: 18%">
+          <col style="width: 11%">
+          <col style="width: 6%">
+          <col style="width: 6%">
+          <col style="width: 6%">
+          <col style="width: 6%">
+          <col style="width: 7%">
+          <col class="game-col-el" style="width: 9%; display: none">
+          <col>
+        </colgroup>
+        <thead>
+          <tr>
+            <th>Metric</th>
+            <th>Category</th>
+            <th style="text-align:center;color:var(--dim-bookings)">Bkgs</th>
+            <th style="text-align:center;color:var(--dim-deploy)">Deploy</th>
+            <th style="text-align:center;color:var(--dim-tech)">Tech</th>
+            <th style="text-align:center;color:var(--dim-usage)">Usage</th>
+            <th>L/L</th>
+            <th class="game-col" style="display:none">Gameability</th>
+            <th>Key shortcoming</th>
+          </tr>
+        </thead>
+        <tbody id="metrics-body"></tbody>
+      </table>
+    </div>
+  </section>
+
+  <!-- KEY CONCEPTS -->
+  <section id="concepts" class="view">
+    <h2>Key concepts you'll need to defend in Q&A</h2>
+    <p class="lead">These are the conceptual frames that sit underneath every decision in the metric design. Panel Q&A will test whether you actually understand the distinctions.</p>
+
+    <div class="concept-block">
+      <div class="subhead">1 · Three ways to size a sale</div>
+      <h4>TCV vs. ARR vs. Consumption Revenue</h4>
+      <p>Every SaaS company is some mix of these three. The shift PANW is making is from a <strong>TCV-weighted</strong> model to an <strong>ARR + Consumption-weighted</strong> hybrid.</p>
+      <table>
+        <thead><tr><th>Concept</th><th>What it measures</th><th>Time horizon</th><th>Behavior it incentivizes</th></tr></thead>
+        <tbody>
+          <tr><td><strong>TCV</strong></td><td>Full dollar value of contract over entire term, booked at signing.</td><td>Entire contract (often 3 yrs)</td><td>Land big upfront commits.</td></tr>
+          <tr><td><strong>ARR</strong></td><td>Annualized value of the recurring subscription, measured at a point in time.</td><td>Rolling, year-by-year</td><td>Keep the subscription alive.</td></tr>
+          <tr><td><strong>Consumption Revenue</strong></td><td>Revenue recognized as the customer burns credits/usage.</td><td>Real-time / monthly</td><td>Drive actual product use, not just signatures.</td></tr>
+        </tbody>
+      </table>
+      <p><strong>Why it matters:</strong> Each metric optimizes for a different moment in the customer journey. The old TCV world ignored everything after signing. The new world can't ignore any of it.</p>
+    </div>
+
+    <div class="concept-block">
+      <div class="subhead">2 · Leading vs. Lagging indicators</div>
+      <h4>Why you need both</h4>
+      <p>A <strong>lagging</strong> indicator measures something that has already happened (NRR, churn, ARR). A <strong>leading</strong> indicator predicts what's about to happen (usage trend, Sev-1 rate, DAU/MAU).</p>
+      <p>A metric built only from lagging signals tells you about last year's decisions, too late to intervene. A metric built only from leading signals has no ground truth. A good North Star blends both: leading signals to drive action, lagging signals to validate that the leading signals were right.</p>
+      <p><strong>Rule of thumb:</strong> comp plans tied to lagging metrics print last year's paycheck for this year's work. Comp plans tied to leading metrics are faster but more gameable. Mix them intentionally.</p>
+    </div>
+
+    <div class="concept-block">
+      <div class="subhead">3 · Level vs. Trend (the derivative matters)</div>
+      <h4>Current utilization vs. utilization trajectory</h4>
+      <p>An account at 60% utilization <em>trending up</em> is healthier than one at 85% <em>trending down</em>. Most existing health metrics report only the <strong>level</strong> (snapshot). Including the <strong>trend</strong> (first derivative) is where a thoughtful composite wins.</p>
+      <p>The specific signal to capture: consumption rate over the last 30–90 days relative to the 12-month baseline. Spike-and-drop patterns show a negative derivative even when the level still looks fine.</p>
+    </div>
+
+    <div class="concept-block">
+      <div class="subhead">4 · Composite indexes, the pattern &amp; its failure modes</div>
+      <h4>Weighted blends: what they buy you, what they cost</h4>
+      <p>A composite index combines multiple sub-metrics into one weighted score (typically 0–100). This is the industry-standard pattern for customer health (Gainsight, ChurnZero, Totango).</p>
+      <p><strong>Strengths:</strong> defensible coverage of multiple dimensions, surface-level simplicity for executives, component-level diagnostics for CSMs, tunable as the business evolves.</p>
+      <p><strong>Failure modes to address in the design:</strong></p>
+      <ul>
+        <li><strong>Arbitrary weights.</strong> Why 40/20/20/20 and not 30/30/20/20? Anchor weights to observed renewal correlation, not opinion.</li>
+        <li><strong>Offsetting components.</strong> A high Deployment score can mask a collapsing Usage score if you just average. Consider floor rules or multiplicative terms for critical dimensions.</li>
+        <li><strong>Hidden nonlinearity.</strong> Going from 90% → 95% utilization isn't the same as 40% → 45%. Use thresholds, piecewise functions, or logistic transforms where linear averaging hides real dynamics.</li>
+        <li><strong>Weight drift.</strong> As the product/business evolves, so should the weights. Build in a re-calibration cadence.</li>
+      </ul>
+    </div>
+
+    <div class="concept-block">
+      <div class="subhead">5 · Gameability (for comp plans)</div>
+      <h4>Can a rep manipulate this metric without actually creating value?</h4>
+      <p>When a metric drives compensation, its <em>gameability</em> becomes a first-class design concern. A few patterns to watch for:</p>
+      <ul>
+        <li><strong>Utilization</strong>: rep can push customer to burn credits unnecessarily.</li>
+        <li><strong>NPS/CSAT</strong>: timing the survey after a "good moment" skews results.</li>
+        <li><strong>Ticket volume</strong>: CSMs can discourage ticket filing.</li>
+        <li><strong>"Color" status</strong>: manual rating is prone to sandbagging just before reviews.</li>
+      </ul>
+      <p>Composites with technical-health + trend components tend to be the hardest to game, because manipulating one lever (say, usage) damages another (say, support load spikes).</p>
+    </div>
+
+    <div class="concept-block">
+      <div class="subhead">6 · Metric hierarchy</div>
+      <h4>North Star ≠ only metric</h4>
+      <p>A good North Star is a <em>single number</em> at the top, backed by a small set of <em>input metrics</em> one level down, backed by <em>diagnostic metrics</em> at the operational layer. The North Star is for the VP's dashboard; the inputs are for CSM action; the diagnostics are for root cause. Don't conflate the three.</p>
+    </div>
+
+  </section>
+
+  <!-- EDGE CASES -->
+  <section id="edge" class="view">
+    <h2>The five edge cases the brief calls out</h2>
+    <p class="lead">These are not academic, they're the concrete data pathologies your metric must handle. Expect every Q&A question to come back to one of these. The metric will be evaluated on how it treats each.</p>
+
+    <div class="edge-grid">
+      <div class="edge-card">
+        <h5>Spike &amp; Drop <span class="pct">~5% of accounts</span></h5>
+        <p><strong>Pattern:</strong> Burns 90% of annual credits in Month 1, then near-zero.</p>
+        <p><strong>What naive metrics miss:</strong> Annual utilization looks 100%, "fully realized." Raw burn-down looks healthy.</p>
+        <p><strong>What the North Star must capture:</strong> Negative trend derivative over the last 6–9 months. A momentum/trend component penalizes this even when level looks fine.</p>
+      </div>
+      <div class="edge-card">
+        <h5>Shelfware <span class="pct">~10% of accounts</span></h5>
+        <p><strong>Pattern:</strong> Paid high <code>annual_commit_dollars</code>, but <code>Daily_Usage_Logs</code> are empty.</p>
+        <p><strong>What naive metrics miss:</strong> ARR looks great. TCV looks great. Everything commercial looks great.</p>
+        <p><strong>What the North Star must capture:</strong> Deployment + Usage components collapse. A floor rule on Usage should drop the composite score sharply, regardless of Bookings strength.</p>
+      </div>
+      <div class="edge-card">
+        <h5>Consistent Overages <span class="pct">~15% of accounts</span></h5>
+        <p><strong>Pattern:</strong> Consistently consume 120%+ of included monthly compute credits.</p>
+        <p><strong>What naive metrics miss:</strong> Utilization &gt; 100% looks "broken" to a naive cap. Burn rate alarms fire.</p>
+        <p><strong>What the North Star must capture:</strong> This is a <em>positive</em> signal (product stickiness, expansion candidate), not a penalty. Metric must distinguish "over-consumption against commit" from "spike-and-drop", both involve high burn, opposite meanings.</p>
+      </div>
+      <div class="edge-card">
+        <h5>Mid-Year Expansions</h5>
+        <p><strong>Pattern:</strong> Second, larger contract signed mid-year, overlapping the first.</p>
+        <p><strong>What naive metrics miss:</strong> Which contract do you attribute usage to? Do you double-count commit dollars? What start date does the "lifecycle" use?</p>
+        <p><strong>What the North Star must capture:</strong> Metric logic must define contract precedence (e.g., take the most recent, or sum active commits in the overlap window). Document this explicitly in the spec.</p>
+      </div>
+      <div class="edge-card">
+        <h5>Orphaned / Rogue Usage</h5>
+        <p><strong>Pattern:</strong> <code>account_id</code> in usage logs doesn't exist in Accounts, or usage falls outside active contract dates.</p>
+        <p><strong>What naive metrics miss:</strong> Silently inflates usage. Corrupts CSM-level rollups.</p>
+        <p><strong>What the North Star must capture:</strong> Pipeline must flag and quarantine these records, never silently drop them. Data quality test is mandatory; the metric itself should expose a "quarantine volume" diagnostic.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- AVRI SPEC -->
+  <section id="avri" class="view">
+    <h2>AVRI, Account Value Realization Index</h2>
+    <p class="lead">Working draft of the proposed North Star metric (mirrors <code>/specs/metric_v0.md</code>). A 0–100 composite at the account level, rolled up to CSM and region. The four pillars map 1:1 to the brief's four dimensions.</p>
+
+    <div class="spec-block">
+      <div class="subhead">In one sentence</div>
+      <p>AVRI measures whether a customer is realizing the value of what they purchased, combining commit-to-consumption fit, usage momentum, deployment maturity, and technical health.</p>
+    </div>
+
+    <h3>The four pillars</h3>
+
+    <div class="pillar-card cr">
+      <div class="pillar-head">
+        <h4>Commit Realization (CR)</h4>
+        <span class="weight-badge">weight 30%<button class="info-icon" data-choice="w-cr" title="Why this weight?">i</button></span>
+      </div>
+      <div class="pillar-sub">Are they using what they paid for?</div>
+      <div class="pillar-row"><div class="lbl">Inputs</div><div class="val"><code>Contracts.included_monthly_compute_credits</code>, <code>Daily_Usage_Logs.compute_credits_consumed</code></div></div>
+      <div class="pillar-row"><div class="lbl">Calculation</div><div class="val">Trailing-90-day consumed credits ÷ (3 × monthly commit)</div></div>
+      <div class="pillar-row"><div class="lbl">Score curve</div><div class="val">Piecewise: 0–50% → linear; 50–110% → score = 100 (sweet spot)<button class="info-icon" data-choice="c-cr-sweet">i</button>; 110–150% → still 100 (flagged as expansion)<button class="info-icon" data-choice="c-cr-overage">i</button>; 150%+ → gentle decay to ~60<button class="info-icon" data-choice="c-cr-decay">i</button>.</div></div>
+      <div class="pillar-row"><div class="lbl">Why piecewise</div><div class="val">Linear utilization punishes overages as if they were equivalent to underuse. They are not, overages are positive churn signals.</div></div>
+    </div>
+
+    <div class="pillar-card um">
+      <div class="pillar-head">
+        <h4>Usage Momentum (UM)</h4>
+        <span class="weight-badge">weight 30%<button class="info-icon" data-choice="w-um">i</button></span>
+      </div>
+      <div class="pillar-sub">Is consumption holding up over time?</div>
+      <div class="pillar-row"><div class="lbl">Inputs</div><div class="val"><code>Daily_Usage_Logs.compute_credits_consumed</code></div></div>
+      <div class="pillar-row"><div class="lbl">Calculation</div><div class="val">Ratio of last-90-day<button class="info-icon" data-choice="tw-90">i</button> daily average to trailing-12-month<button class="info-icon" data-choice="tw-12">i</button> daily average.</div></div>
+      <div class="pillar-row"><div class="lbl">Score curve</div><div class="val">Ratio ≥ 1.0 → 100<button class="info-icon" data-choice="c-um-cap">i</button>; 0.7–1.0 → 70–100; 0.3–0.7 → 30–70; &lt;0.3 → severe decay zone<button class="info-icon" data-choice="c-um-decay">i</button>.</div></div>
+      <div class="pillar-row"><div class="lbl">Why this matters</div><div class="val">The differentiator vs Gainsight CHS, which is snapshot-only. This is what catches Spike-and-Drop.</div></div>
+    </div>
+
+    <div class="pillar-card dm">
+      <div class="pillar-head">
+        <h4>Deployment Maturity (DM)</h4>
+        <span class="weight-badge">weight 20%<button class="info-icon" data-choice="w-dm">i</button></span>
+      </div>
+      <div class="pillar-sub">Is the product genuinely operationalized?</div>
+      <div class="pillar-row"><div class="lbl">Inputs</div><div class="val"><code>Daily_Usage_Logs</code> (count of distinct active days)</div></div>
+      <div class="pillar-row"><div class="lbl">Calculation</div><div class="val">active_days_last_90 ÷ 90.</div></div>
+      <div class="pillar-row"><div class="lbl">Score curve</div><div class="val">Linear, 0 → 0, 1.0 → 100.</div></div>
+      <div class="pillar-row"><div class="lbl">Synthetic-data caveat</div><div class="val">In production this pillar would also pull license provisioning %, feature adoption breadth, onboarding milestones. The synthetic schema doesn't include these, active-day breadth is the available proxy.</div></div>
+    </div>
+
+    <div class="pillar-card th">
+      <div class="pillar-head">
+        <h4>Technical Health (TH)</h4>
+        <span class="weight-badge">weight 20%<button class="info-icon" data-choice="w-th">i</button></span>
+      </div>
+      <div class="pillar-sub">Is the platform working for them?</div>
+      <div class="pillar-row"><div class="lbl">Inputs</div><div class="val"><code>Account_Health.health_color</code>, <code>Account_Health.date</code></div></div>
+      <div class="pillar-row"><div class="lbl">Calculation</div><div class="val">Exponentially weighted health color over last 90 days<button class="info-icon" data-choice="tw-90">i</button>. green=100, yellow=50, red=0<button class="info-icon" data-choice="agg-colors">i</button>. Decay factor 0.95<button class="info-icon" data-choice="agg-decay">i</button>.</div></div>
+      <div class="pillar-row"><div class="lbl">Score curve</div><div class="val">Direct (already 0–100).</div></div>
+      <div class="pillar-row"><div class="lbl">Synthetic-data caveat</div><div class="val">Production version replaces the color with Sev-1 frequency, SLA attainment, and active escalations.</div></div>
+    </div>
+
+    <div class="spec-block">
+      <div class="subhead">Composite formula</div>
+      <pre>AVRI_raw = 0.30·CR + 0.30·UM + 0.20·DM + 0.20·TH
+
+# Floor rule: technical health cannot be averaged away
+if TH &lt; 30:
+    AVRI = min(AVRI_raw, 50)
+else:
+    AVRI = AVRI_raw</pre>
+      <p><strong>Why the floor rule:</strong> linear weighted averages are substitutable, high CR can mathematically offset low TH. In reality, a customer with critical platform issues will not renew regardless of consumption. The floor expresses non-substitutability. <button class="info-icon" data-choice="f-trigger">i</button> trigger · <button class="info-icon" data-choice="f-cap">i</button> cap</p>
+    </div>
+
+    <div class="spec-block">
+      <div class="subhead">RAG thresholds</div>
+      <table>
+        <thead><tr><th>Color</th><th>Range</th><th>Interpretation</th></tr></thead>
+        <tbody>
+          <tr><td><strong style="color:var(--good)">Green</strong></td><td>AVRI ≥ 75 <button class="info-icon" data-choice="t-green">i</button></td><td>Healthy. Renewal trajectory positive. Eligible for expansion.</td></tr>
+          <tr><td><strong style="color:var(--warn)">Yellow</strong></td><td>50 ≤ AVRI &lt; 75 <button class="info-icon" data-choice="t-yellow">i</button></td><td>Watch. Specific pillar(s) underperforming.</td></tr>
+          <tr><td><strong style="color:var(--bad)">Red</strong></td><td>AVRI &lt; 50 <button class="info-icon" data-choice="t-red">i</button></td><td>At risk. Active renewal risk. Escalate.</td></tr>
+        </tbody>
+      </table>
+      <p><strong>v0 caveat:</strong> thresholds are heuristic. Production would calibrate against historical renewal outcomes.</p>
+    </div>
+
+    <div class="spec-block">
+      <div class="subhead">Edge case behavior</div>
+      <table>
+        <thead><tr><th>Edge case</th><th>Pillar response</th><th>Net AVRI</th></tr></thead>
+        <tbody>
+          <tr><td>Spike &amp; Drop (5%)</td><td>CR high (annualized), <strong>UM near 0</strong>, DM low</td><td>Yellow / Red, caught by UM</td></tr>
+          <tr><td>Shelfware (10%)</td><td>CR ≈ 0, UM ≈ 0, DM ≈ 0</td><td>Deep Red, three pillars collapse</td></tr>
+          <tr><td>Consistent Overage (15%)</td><td>CR = 100, UM stable, DM high</td><td>Green, correctly rewarded; capacity flag fires separately</td></tr>
+          <tr><td>Mid-Year Expansion</td><td>Sum active commits in overlap window</td><td>No distortion</td></tr>
+          <tr><td>Orphaned Usage</td><td>Quarantined upstream by pipeline</td><td>Not counted; surfaced via DQ test</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="spec-block">
+      <div class="subhead">Aggregation rules</div>
+      <p><strong>Account-level:</strong> AVRI computed from raw signals as above.<br>
+      <strong>CSM-level:</strong> Dollar-weighted<button class="info-icon" data-choice="agg-dollar">i</button> average of account AVRIs in the CSM's book, weighted by <code>annual_commit_dollars</code>.<br>
+      <strong>Region-level:</strong> Same dollar-weighted rollup across all CSMs in the region.</p>
+      <p><strong>Why dollar-weighted:</strong> a CSM's portfolio health should not be dominated by long-tail small accounts.</p>
+    </div>
+
+    <div class="spec-block">
+      <div class="subhead">v0 explicit non-goals</div>
+      <p>No predictive ML model, AVRI is a transparent rules-based scorecard (explainability matters for comp plans). No per-segment weight tuning. No NPS/sentiment input (not in schema). No cold-start handling for new accounts (&lt;90 days tenure).</p>
+    </div>
+
+    <div class="spec-block">
+      <div class="subhead">Open design questions</div>
+      <p>(1) Are the 30/30/20/20 weights defensible without renewal-correlation calibration? (2) Is 90-day the right momentum window? (3) Should weights fork by Enterprise vs Mid-Market? (4) Which AVRI components should drive variable comp? (5) Should the 110–150% utilization band trigger a separate "Capacity Risk" alert independent of AVRI? (6) How do we handle cold-start (accounts &lt;90 days tenure)?</p>
+    </div>
+  </section>
+
+  <!-- DATA SPEC -->
+  <section id="data" class="view">
+    <h2>Data Generation Spec</h2>
+    <p class="lead">Working draft of the synthetic dataset specification (mirrors <code>/specs/data_generation_spec.md</code>). Schema-faithful to the brief, parameterized so existing metrics produce non-trivial outputs and AVRI's pillars can demonstrably discriminate edge cases.</p>
+
+    <div class="spec-block">
+      <div class="subhead">Goals</div>
+      <p>The dataset must be <strong>schema-faithful</strong> (5 tables at brief's row counts), <strong>realistic enough</strong> for existing metrics to compute meaningfully, <strong>pathological enough</strong> for the 5 edge cases to be visible, and <strong>internally consistent</strong> across tables.</p>
+      <p><strong>Reproducibility:</strong> single seed (<code>SEED = 20260422</code>) governs all RNG. Re-running produces identical data.</p>
+    </div>
+
+    <h3>Table schemas</h3>
+    <div class="schema-grid">
+      <div class="schema-table">
+        <h5>csm_rep · ~50 rows</h5>
+        <ul>
+          <li><span class="col-name">csm_id</span> · <span class="muted">CSM-001 to CSM-050</span></li>
+          <li><span class="col-name">name</span> · faker</li>
+          <li><span class="col-name">region</span> · AMER 60% · EMEA 25% · APAC 15%</li>
+          <li><span class="col-name">segment</span> · Enterprise 40% · Mid-Market 60%</li>
+        </ul>
+      </div>
+      <div class="schema-table">
+        <h5>accounts · ~1,000 rows</h5>
+        <ul>
+          <li><span class="col-name">account_id</span> · ACC-00001…</li>
+          <li><span class="col-name">company_name</span> · faker</li>
+          <li><span class="col-name">industry</span> · 9 verticals, FS/Tech/Healthcare-weighted</li>
+          <li><span class="col-name">rep_id</span> · FK, segment-respecting</li>
+        </ul>
+      </div>
+      <div class="schema-table">
+        <h5>contracts · ~1,200 rows</h5>
+        <ul>
+          <li><span class="col-name">contract_id</span></li>
+          <li><span class="col-name">account_id</span> · FK</li>
+          <li><span class="col-name">start_date / end_date</span></li>
+          <li><span class="col-name">annual_commit_dollars</span> · lognormal, segment-conditional</li>
+          <li><span class="col-name">included_monthly_compute_credits</span> · price-per-credit varies</li>
+        </ul>
+      </div>
+      <div class="schema-table">
+        <h5>account_health · ~50,000 rows</h5>
+        <ul>
+          <li><span class="col-name">account_id</span> · FK</li>
+          <li><span class="col-name">date</span> · weekly snapshot</li>
+          <li><span class="col-name">health_color</span> · Markov chain transitions</li>
+          <li><span class="col-name">compute_credits_consumed</span> · weekly aggregate</li>
+        </ul>
+      </div>
+      <div class="schema-table">
+        <h5>daily_usage_logs · ~200,000 rows</h5>
+        <ul>
+          <li><span class="col-name">log_id</span> · UUID</li>
+          <li><span class="col-name">account_id</span> · FK or rogue</li>
+          <li><span class="col-name">date</span> · daily, with weekend dampening</li>
+          <li><span class="col-name">compute_credits_consumed</span> · per-event credits</li>
+        </ul>
+      </div>
+    </div>
+
+    <h3>Account personas (population mix)</h3>
+    <p class="lead">Every account is assigned exactly one persona. Persona governs the time-series shape of consumption.</p>
+    <div class="persona-grid">
+      <div class="persona-card"><div class="pname">Healthy Steady <span class="ppct">40%</span></div><p>Ramps over 30–60 days, plateaus at 70–95% of monthly commit, holds steady.</p></div>
+      <div class="persona-card"><div class="pname">Healthy Growing <span class="ppct">15%</span></div><p>Starts at 40%, grows to ~90% by Month 12.</p></div>
+      <div class="persona-card"><div class="pname">Healthy Mature <span class="ppct">10%</span></div><p>High consumption (~85%) from Day 1, no ramp.</p></div>
+      <div class="persona-card"><div class="pname">Healthy Declining <span class="ppct">5%</span></div><p>Starts at 90%, gradually declines to ~55%. Acceptable lifecycle decay (NOT spike-and-drop).</p></div>
+      <div class="persona-card warn"><div class="pname">Spike &amp; Drop <span class="ppct">5%</span></div><p>Burns 80–95% of <em>annual</em> credits in Month 1, drops to &lt;5% of monthly commit thereafter.</p></div>
+      <div class="persona-card bad"><div class="pname">Shelfware <span class="ppct">10%</span></div><p>Near-zero usage throughout. Health color drifts toward yellow/red.</p></div>
+      <div class="persona-card warn"><div class="pname">Consistent Overage <span class="ppct">15%</span></div><p>Consumption holds at 110–150% of monthly commit every month.</p></div>
+    </div>
+    <p class="lead"><strong>Mid-year Expansion overlay (~5%):</strong> Independent overlay applied to ~50 accounts (any persona except Shelfware). A second, larger contract is signed 4–8 months in, and consumption ramps to a higher absolute level. Tests the contract-precedence logic.</p>
+
+    <div class="spec-block">
+      <div class="subhead">Time-series shape</div>
+      <pre>consumption(t) = baseline(t, persona)
+               × seasonal(t)
+               × noise(t)
+               × edge_modifier(t, persona)</pre>
+      <p><strong>baseline</strong>, deterministic shape per persona.<br>
+      <strong>seasonal</strong>, weekdays 1.0, weekends 0.6 ± 0.05.<br>
+      <strong>noise</strong>, Gaussian σ=0.15, clipped to [0.5, 1.5].<br>
+      <strong>edge_modifier</strong>, persona-specific perturbations (spike-and-drop's Month 1 burst lives here).</p>
+      <p>Daily totals are split into 1–8 events with a Dirichlet split. Inactive days produce zero logs.</p>
+    </div>
+
+    <div class="spec-block">
+      <div class="subhead">Edge case injection</div>
+      <table>
+        <thead><tr><th>Edge case</th><th>Target</th><th>Logic</th></tr></thead>
+        <tbody>
+          <tr><td>Spike &amp; Drop</td><td>~50 accts</td><td>Persona. M1 = 80–95% of annual; M2–12 = &lt;5% of monthly.</td></tr>
+          <tr><td>Shelfware</td><td>~100 accts</td><td>Persona. Daily = max(0, normal(0, 0.5)). Health color biased red.</td></tr>
+          <tr><td>Consistent Overage</td><td>~150 accts</td><td>Persona. Floor 110%, allowed to 150%.</td></tr>
+          <tr><td>Mid-year Expansion</td><td>~50 accts</td><td>Second contract row; consumption baseline jumps after expansion start.</td></tr>
+          <tr><td>Orphaned/Rogue Usage</td><td>~300 logs</td><td>~150 with fake account_id; ~150 dated outside any active contract.</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="spec-block">
+      <div class="subhead">Cross-table correlations</div>
+      <p>Segment ↔ commit size (Enterprise ~5–10× Mid-Market). Industry ↔ seasonality (Retail Q4 spike, Education summer dip). Persona ↔ health color (Shelfware drifts red; Spike-and-Drop decays through yellow). Persona ↔ active days (Healthy Steady 4–5/week; Shelfware 0–2/quarter). Account-rep segment matching is strict.</p>
+    </div>
+
+    <div class="spec-block">
+      <div class="subhead">Validation gates</div>
+      <p>Pre-upload assertions: (1) row counts within ±5%; (2) contracts FK integrity holds; (3) ~150 orphan logs detected; (4) ~150 out-of-window logs detected; (5) persona distribution within ±2pp; (6) mid-year expansion accounts have exactly 2 overlapping contracts; (7) account_health is unique by (account_id, week).</p>
+    </div>
+  </section>
+
+  <!-- SCHEMA → METRIC FLOW -->
+  <section id="flow" class="view">
+    <h2>Schema → Metric Flow</h2>
+    <p class="lead">How raw schema columns flow through derived signals into AVRI's four pillars and the composite. Click a pillar button to highlight only the columns and signals feeding that pillar.</p>
+
+    <div class="flow-controls">
+      <span class="label-text">Highlight:</span>
+      <button class="flow-btn active all" data-pillar="all">All pillars</button>
+      <button class="flow-btn cr" data-pillar="cr">Commit Realization</button>
+      <button class="flow-btn um" data-pillar="um">Usage Momentum</button>
+      <button class="flow-btn dm" data-pillar="dm">Deployment Maturity</button>
+      <button class="flow-btn th" data-pillar="th">Technical Health</button>
+    </div>
+
+    <div class="flow-wrap">
+      <svg class="flow-svg" viewBox="0 0 1200 620" xmlns="http://www.w3.org/2000/svg">
+        <!-- Column headers -->
+        <text x="120" y="22" class="flow-text col-header" text-anchor="middle">Schema Columns</text>
+        <text x="430" y="22" class="flow-text col-header" text-anchor="middle">Derived Signals</text>
+        <text x="760" y="22" class="flow-text col-header" text-anchor="middle">Pillars</text>
+        <text x="1080" y="22" class="flow-text col-header" text-anchor="middle">Composite</text>
+
+        <!-- Connecting links (rendered first so they sit behind nodes) -->
+        <!-- COLUMN -> SIGNAL links -->
+        <!-- monthly_commit -> commit-90d-norm -->
+        <path class="flow-link cr" data-pillar="cr" d="M 240 105 C 320 105, 320 110, 340 110" stroke-width="2.5"/>
+        <!-- usage.consumed -> sum90 -->
+        <path class="flow-link cr" data-pillar="cr" d="M 240 200 C 310 200, 310 130, 340 130" stroke-width="2.5"/>
+        <!-- usage.consumed -> 90d avg -->
+        <path class="flow-link um" data-pillar="um" d="M 240 200 C 310 200, 310 230, 340 230" stroke-width="2.5"/>
+        <!-- usage.date -> 12mo baseline -->
+        <path class="flow-link um" data-pillar="um" d="M 240 220 C 310 220, 310 260, 340 260" stroke-width="2.5"/>
+        <!-- usage.date -> active days -->
+        <path class="flow-link dm" data-pillar="dm" d="M 240 220 C 310 220, 310 360, 340 360" stroke-width="2.5"/>
+        <!-- usage.account_id -> active days (groupby) -->
+        <path class="flow-link dm" data-pillar="dm" d="M 240 180 C 310 180, 310 360, 340 360" stroke-width="2"/>
+        <!-- health.color -> color-decay -->
+        <path class="flow-link th" data-pillar="th" d="M 240 460 C 310 460, 310 460, 340 460" stroke-width="2.5"/>
+        <!-- health.date -> color-decay -->
+        <path class="flow-link th" data-pillar="th" d="M 240 480 C 310 480, 310 470, 340 470" stroke-width="2"/>
+
+        <!-- contracts.start/end -> active-contract gate (used for filtering) -->
+        <path class="flow-link cr" data-pillar="cr" d="M 240 130 C 310 130, 310 120, 340 120" stroke-width="1.5" stroke-dasharray="3 3"/>
+
+        <!-- SIGNAL -> PILLAR links -->
+        <path class="flow-link cr" data-pillar="cr" d="M 580 120 C 660 120, 660 130, 700 130" stroke-width="3"/>
+        <path class="flow-link um" data-pillar="um" d="M 580 245 C 660 245, 660 260, 700 260" stroke-width="3"/>
+        <path class="flow-link dm" data-pillar="dm" d="M 580 360 C 660 360, 660 380, 700 380" stroke-width="3"/>
+        <path class="flow-link th" data-pillar="th" d="M 580 465 C 660 465, 660 500, 700 500" stroke-width="3"/>
+
+        <!-- PILLAR -> AVRI links -->
+        <path class="flow-link cr" data-pillar="cr" d="M 880 130 C 950 130, 970 290, 1010 305" stroke-width="3"/>
+        <path class="flow-link um" data-pillar="um" d="M 880 260 C 950 260, 970 300, 1010 310" stroke-width="3"/>
+        <path class="flow-link dm" data-pillar="dm" d="M 880 380 C 950 380, 970 320, 1010 320" stroke-width="3"/>
+        <path class="flow-link th" data-pillar="th" d="M 880 500 C 950 500, 970 330, 1010 330" stroke-width="3"/>
+
+        <!-- annual_commit_dollars -> AVRI (rollup weight) -->
+        <path class="flow-link weight" data-pillar="all" d="M 240 155 C 600 155, 940 580, 1010 350" stroke-width="2"/>
+
+        <!-- ============= NODES ============= -->
+        <!-- COLUMN: Contracts -->
+        <rect class="node-rect tbl" x="40" y="80" width="200" height="100" rx="6"/>
+        <text x="50" y="100" class="flow-text title">contracts</text>
+        <text x="50" y="120" class="flow-text sub">included_monthly_compute_credits</text>
+        <text x="50" y="138" class="flow-text sub">start_date / end_date</text>
+        <text x="50" y="156" class="flow-text sub">annual_commit_dollars (→ rollup wt)</text>
+        <text x="50" y="174" class="flow-text sub">account_id (FK)</text>
+
+        <!-- COLUMN: Daily_Usage_Logs -->
+        <rect class="node-rect tbl" x="40" y="195" width="200" height="100" rx="6"/>
+        <text x="50" y="215" class="flow-text title">daily_usage_logs</text>
+        <text x="50" y="235" class="flow-text sub">compute_credits_consumed</text>
+        <text x="50" y="253" class="flow-text sub">date</text>
+        <text x="50" y="271" class="flow-text sub">account_id</text>
+
+        <!-- COLUMN: Account_Health -->
+        <rect class="node-rect tbl" x="40" y="430" width="200" height="80" rx="6"/>
+        <text x="50" y="450" class="flow-text title">account_health</text>
+        <text x="50" y="470" class="flow-text sub">health_color</text>
+        <text x="50" y="488" class="flow-text sub">date</text>
+
+        <!-- COLUMN: Accounts/CSM (rollup context) -->
+        <rect class="node-rect tbl" x="40" y="540" width="200" height="60" rx="6"/>
+        <text x="50" y="560" class="flow-text title">accounts / csm_rep</text>
+        <text x="50" y="578" class="flow-text sub">rep_id, region, segment</text>
+        <text x="50" y="595" class="flow-text sub">(used for rollup grouping)</text>
+
+        <!-- SIGNALS: CR -->
+        <rect class="node-rect signal" x="340" y="95" width="240" height="50" rx="6" data-pillar="cr"/>
+        <text x="350" y="115" class="flow-text title" data-pillar="cr">Trailing-90d consumption</text>
+        <text x="350" y="133" class="flow-text sub" data-pillar="cr">SUM(consumed) over last 90 days</text>
+
+        <!-- SIGNALS: UM -->
+        <rect class="node-rect signal" x="340" y="215" width="240" height="65" rx="6" data-pillar="um"/>
+        <text x="350" y="235" class="flow-text title" data-pillar="um">90d avg vs 12mo baseline</text>
+        <text x="350" y="253" class="flow-text sub" data-pillar="um">avg_90d ÷ avg_12mo</text>
+        <text x="350" y="271" class="flow-text sub" data-pillar="um">→ momentum ratio</text>
+
+        <!-- SIGNALS: DM -->
+        <rect class="node-rect signal" x="340" y="335" width="240" height="50" rx="6" data-pillar="dm"/>
+        <text x="350" y="355" class="flow-text title" data-pillar="dm">Active-day breadth</text>
+        <text x="350" y="373" class="flow-text sub" data-pillar="dm">distinct(date) / 90</text>
+
+        <!-- SIGNALS: TH -->
+        <rect class="node-rect signal" x="340" y="440" width="240" height="50" rx="6" data-pillar="th"/>
+        <text x="350" y="460" class="flow-text title" data-pillar="th">Decayed health-color score</text>
+        <text x="350" y="478" class="flow-text sub" data-pillar="th">Σ(color × 0.95^age) / Σ(weights)</text>
+
+        <!-- PILLARS -->
+        <rect class="node-rect pillar col-cr" x="700" y="100" width="180" height="60" rx="6" data-pillar="cr"/>
+        <text x="710" y="125" class="flow-text title" data-pillar="cr" style="fill: var(--dim-bookings)">Commit Realization</text>
+        <text x="710" y="145" class="flow-text sub" data-pillar="cr">weight 30% · piecewise curve</text>
+
+        <rect class="node-rect pillar col-um" x="700" y="225" width="180" height="60" rx="6" data-pillar="um"/>
+        <text x="710" y="250" class="flow-text title" data-pillar="um" style="fill: var(--dim-usage)">Usage Momentum</text>
+        <text x="710" y="270" class="flow-text sub" data-pillar="um">weight 30% · momentum curve</text>
+
+        <rect class="node-rect pillar col-dm" x="700" y="350" width="180" height="60" rx="6" data-pillar="dm"/>
+        <text x="710" y="375" class="flow-text title" data-pillar="dm" style="fill: var(--dim-deploy)">Deployment Maturity</text>
+        <text x="710" y="395" class="flow-text sub" data-pillar="dm">weight 20% · linear</text>
+
+        <rect class="node-rect pillar col-th" x="700" y="470" width="180" height="60" rx="6" data-pillar="th"/>
+        <text x="710" y="495" class="flow-text title" data-pillar="th" style="fill: var(--dim-tech)">Technical Health</text>
+        <text x="710" y="515" class="flow-text sub" data-pillar="th">weight 20% · floor rule active</text>
+
+        <!-- AVRI -->
+        <rect class="node-rect avri" x="1010" y="280" width="160" height="80" rx="8"/>
+        <text x="1090" y="315" class="flow-text avri-label" text-anchor="middle">AVRI</text>
+        <text x="1090" y="335" class="flow-text avri-sub" text-anchor="middle">0.3·CR + 0.3·UM</text>
+        <text x="1090" y="350" class="flow-text avri-sub" text-anchor="middle">+ 0.2·DM + 0.2·TH</text>
+
+        <!-- Floor rule note -->
+        <text x="1090" y="380" class="flow-text sub" text-anchor="middle" style="fill:var(--bad); font-weight:600">if TH &lt; 30 → cap at 50</text>
+
+        <!-- Rollup note -->
+        <text x="1090" y="450" class="flow-text sub" text-anchor="middle" style="font-weight:600">Rollup: $-weighted</text>
+        <text x="1090" y="465" class="flow-text sub" text-anchor="middle">by annual_commit_dollars</text>
+        <text x="1090" y="480" class="flow-text sub" text-anchor="middle">→ csm_id, region</text>
+      </svg>
+    </div>
+
+    <div class="spec-block">
+      <div class="subhead">How to read this</div>
+      <p><strong>Left column:</strong> raw schema columns from the synthetic dataset. <strong>Middle:</strong> derived signals, what we compute from the raw columns. <strong>Right of middle:</strong> the four pillars, each producing a 0–100 sub-score. <strong>Far right:</strong> the AVRI composite. The dashed orange line shows where <code>annual_commit_dollars</code> is used as a rollup weight (not a metric input directly).</p>
+      <p><strong>Notable absences:</strong> the synthetic schema has no license/seat data, no support tickets, no NPS/sentiment, no feature events. Those gaps shape what each pillar can express in v0, the Deployment Maturity and Technical Health pillars are using proxies that production data would replace.</p>
+    </div>
+  </section>
+
+  <!-- DEFENDING CHOICES -->
+  <section id="defending" class="view">
+    <h2>Defending Choices <span class="count-badge" id="def-count"></span></h2>
+    <p class="lead">Every weight, threshold, and parameter in AVRI and the data spec, with the rationale, defensible range, and a scripted response for "why this number?" Optimized for interview prep. Filter by category or search by name.</p>
+
+    <div class="def-filters">
+      <span class="label-text" style="font-size:12px; font-weight:600; color:var(--text-muted); text-transform:uppercase; letter-spacing:0.04em;">Category:</span>
+      <button class="def-cat-pill active all" data-cat="all">All</button>
+      <button class="def-cat-pill weight" data-cat="weight">Weights</button>
+      <button class="def-cat-pill thresh" data-cat="thresh">Thresholds</button>
+      <button class="def-cat-pill floor" data-cat="floor">Floor Rule</button>
+      <button class="def-cat-pill curve" data-cat="curve">Score Curves</button>
+      <button class="def-cat-pill window" data-cat="window">Time Windows</button>
+      <button class="def-cat-pill agg" data-cat="agg">Aggregation</button>
+      <button class="def-cat-pill data" data-cat="data">Data Generation</button>
+      <span class="filter-group" style="margin-left:auto">
+        <label>Search</label>
+        <input type="text" id="def-search" placeholder="Name or keyword…" />
+      </span>
+    </div>
+
+    <div class="def-grid" id="def-grid"></div>
+  </section>
+
+  <!-- SCRIPTS & RUN GUIDE -->
+  <section id="scripts" class="view">
+    <h2>Scripts &amp; Run Guide</h2>
+    <p class="lead">Every executable in the project, what it does, where to run it, and the sequence to bring the whole pipeline up from scratch.</p>
+
+    <div class="spec-block">
+      <div class="subhead">End-to-end run sequence</div>
+      <p>From a fresh clone of the repository, here is the order to execute things. Each step is idempotent and re-runnable.</p>
+      <div class="script-flow">
+# ---- One-time machine setup ----<br>
+gcloud auth application-default login<br>
+gcloud config set project panw-gcs-northstar<br>
+<br>
+# ---- 1. Generate synthetic data ----<br>
+cd data_generation<br>
+pip install -r requirements.txt<br>
+python main.py                          # → output/*.parquet<br>
+<br>
+# ---- 2. Upload to BigQuery ----<br>
+python load_to_bigquery.py              # → 5 tables in gcs_north_star dataset<br>
+<br>
+# ---- 3. Run metric pipeline ----<br>
+cd ../pipeline_and_tests<br>
+python run_pipeline.py                  # → 4 materialized BQ tables<br>
+<br>
+# ---- 4. Inductive inspection ----<br>
+python inspection.py                    # → ../specs/inspection_findings.md<br>
+<br>
+# ---- 5. Launch dashboard ----<br>
+cd ../dashboard<br>
+pip install -r requirements.txt<br>
+streamlit run app.py                    # → http://localhost:8501
+      </div>
+    </div>
+
+    <h3>The five executables</h3>
+
+    <div class="script-card gen">
+      <div class="script-head">
+        <h4>main.py</h4>
+        <span class="phase-tag">Phase 2 · Data generation</span>
+      </div>
+      <div class="script-purpose">Generates the 5-table synthetic B2B SaaS dataset with all five edge cases injected. Reproducible from a single seed.</div>
+      <div class="script-grid">
+        <div class="lbl">Run from</div><div class="val"><code>data_generation/</code></div>
+        <div class="lbl">Command</div><div class="val"><code>python main.py</code></div>
+        <div class="lbl">Inputs</div><div class="val">None, fully synthetic. All parameters in <code>config.py</code>.</div>
+        <div class="lbl">Outputs</div><div class="val"><code>output/csm_rep.parquet</code>, <code>accounts.parquet</code>, <code>contracts.parquet</code>, <code>daily_usage_logs.parquet</code>, <code>account_health.parquet</code>, <code>manifest.json</code></div>
+        <div class="lbl">Dependencies</div><div class="val">faker, pandas, numpy, pyarrow</div>
+        <div class="lbl">Runtime</div><div class="val">~4 seconds</div>
+        <div class="lbl">Idempotent?</div><div class="val">Yes, same seed produces byte-identical output.</div>
+        <div class="lbl">Notes</div><div class="val">Modular: <code>config.py</code> (params), <code>personas.py</code> (consumption shapes), <code>generate.py</code> (table builders), <code>validators.py</code> (pre-write gates).</div>
+      </div>
+    </div>
+
+    <div class="script-card load">
+      <div class="script-head">
+        <h4>load_to_bigquery.py</h4>
+        <span class="phase-tag">Phase 2 · BigQuery upload</span>
+      </div>
+      <div class="script-purpose">Loads the 5 generated Parquet files to BigQuery with explicit schemas. Creates the dataset if it doesn't exist.</div>
+      <div class="script-grid">
+        <div class="lbl">Run from</div><div class="val"><code>data_generation/</code></div>
+        <div class="lbl">Command</div><div class="val"><code>python load_to_bigquery.py</code></div>
+        <div class="lbl">Optional flags</div><div class="val"><code>--project</code>, <code>--dataset</code>, <code>--location</code></div>
+        <div class="lbl">Inputs</div><div class="val">Parquet files in <code>output/</code></div>
+        <div class="lbl">Outputs</div><div class="val">5 BQ tables in <code>panw-gcs-northstar.gcs_north_star</code></div>
+        <div class="lbl">Dependencies</div><div class="val">google-cloud-bigquery, ADC auth</div>
+        <div class="lbl">Auth</div><div class="val">Reads ADC from <code>~/.config/gcloud/application_default_credentials.json</code></div>
+        <div class="lbl">Idempotent?</div><div class="val">Yes, uses <code>WRITE_TRUNCATE</code>, replaces tables in place.</div>
+      </div>
+    </div>
+
+    <div class="script-card pipeline">
+      <div class="script-head">
+        <h4>run_pipeline.py</h4>
+        <span class="phase-tag">Phase 3 · Metric pipeline</span>
+      </div>
+      <div class="script-purpose">Executes the SQL transforms in dependency order. Materializes the four output tables: existing-metrics zoo + AVRI per account / CSM / region.</div>
+      <div class="script-grid">
+        <div class="lbl">Run from</div><div class="val"><code>pipeline_and_tests/</code></div>
+        <div class="lbl">Command</div><div class="val"><code>python run_pipeline.py</code></div>
+        <div class="lbl">Optional flags</div><div class="val"><code>--project</code>, <code>--dataset</code>, <code>--as-of-date</code> (default 2026-04-22)</div>
+        <div class="lbl">Inputs</div><div class="val">5 source BQ tables; 4 SQL files in <code>sql/</code></div>
+        <div class="lbl">Outputs</div><div class="val"><code>metrics_existing_account</code>, <code>avri_account</code>, <code>avri_csm</code>, <code>avri_region</code></div>
+        <div class="lbl">Dependencies</div><div class="val">google-cloud-bigquery, ADC auth</div>
+        <div class="lbl">Idempotent?</div><div class="val">Yes, each SQL is <code>CREATE OR REPLACE TABLE</code>.</div>
+        <div class="lbl">Notes</div><div class="val">SQL files are templated with <code>{project}</code>, <code>{dataset}</code>, <code>{as_of_date}</code>. Re-running with a different as-of-date produces a fresh snapshot.</div>
+      </div>
+    </div>
+
+    <div class="script-card inspect">
+      <div class="script-head">
+        <h4>inspection.py</h4>
+        <span class="phase-tag">Phase 3 · Inductive inspection</span>
+      </div>
+      <div class="script-purpose">Runs ~12 targeted queries comparing AVRI to existing metrics on the same accounts. Writes a 11-section markdown report.</div>
+      <div class="script-grid">
+        <div class="lbl">Run from</div><div class="val"><code>pipeline_and_tests/</code></div>
+        <div class="lbl">Command</div><div class="val"><code>python inspection.py</code></div>
+        <div class="lbl">Optional flags</div><div class="val"><code>--project</code>, <code>--dataset</code></div>
+        <div class="lbl">Inputs</div><div class="val">4 materialized BQ tables (output of <code>run_pipeline.py</code>)</div>
+        <div class="lbl">Outputs</div><div class="val"><code>specs/inspection_findings.md</code></div>
+        <div class="lbl">Dependencies</div><div class="val">google-cloud-bigquery, pandas, tabulate, ADC auth</div>
+        <div class="lbl">Idempotent?</div><div class="val">Yes, read-only on BQ.</div>
+        <div class="lbl">Notes</div><div class="val">Re-run after any pipeline change to see whether AVRI behavior shifted in the right direction.</div>
+      </div>
+    </div>
+
+    <div class="script-card inspect">
+      <div class="script-head">
+        <h4>pytest (test_data_quality.py)</h4>
+        <span class="phase-tag">Phase 3.5 · Data quality tests</span>
+      </div>
+      <div class="script-purpose">Programmatic assertions against BigQuery, schema sanity, FK integrity, anomaly detection, pipeline output integrity. Required by brief.</div>
+      <div class="script-grid">
+        <div class="lbl">Run from</div><div class="val"><code>pipeline_and_tests/</code></div>
+        <div class="lbl">Command</div><div class="val"><code>pytest -v</code></div>
+        <div class="lbl">Optional flags</div><div class="val"><code>BQ_PROJECT=...</code> and <code>BQ_DATASET=...</code> environment variables to point at a different dataset</div>
+        <div class="lbl">Inputs</div><div class="val">All 5 source tables + 4 materialized output tables in BQ</div>
+        <div class="lbl">Outputs</div><div class="val">Pass/fail per assertion; exit code 0 on full pass</div>
+        <div class="lbl">Dependencies</div><div class="val">pytest, google-cloud-bigquery, ADC auth</div>
+        <div class="lbl">Coverage</div><div class="val">~22 assertions across 4 sections (schema, FK, anomaly detection, pipeline outputs)</div>
+        <div class="lbl">Idempotent?</div><div class="val">Yes, read-only on BQ.</div>
+      </div>
+    </div>
+
+    <div class="script-card dash">
+      <div class="script-head">
+        <h4>app.py</h4>
+        <span class="phase-tag">Phase 4 · Dashboard</span>
+      </div>
+      <div class="script-purpose">Streamlit dashboard. 4 tabs: Executive Overview, CSM Detail, Account Drill-down, At-Risk Renewals. Live BigQuery queries with 10-minute caching.</div>
+      <div class="script-grid">
+        <div class="lbl">Run from</div><div class="val"><code>dashboard/</code></div>
+        <div class="lbl">Command</div><div class="val"><code>streamlit run app.py</code></div>
+        <div class="lbl">Inputs</div><div class="val">4 materialized BQ tables; sidebar filters (region, segment, exclude cold-start)</div>
+        <div class="lbl">Outputs</div><div class="val">Web UI at <code>http://localhost:8501</code></div>
+        <div class="lbl">Dependencies</div><div class="val">streamlit, pandas, google-cloud-bigquery, altair, ADC auth</div>
+        <div class="lbl">Idempotent?</div><div class="val">Read-only on BQ.</div>
+        <div class="lbl">Notes</div><div class="val">Account Drill-down has a "deck story" quick picker (ACC-00202 / ACC-00226 / ACC-00876 / ACC-00218) for live demos.</div>
+      </div>
+    </div>
+
+    <h3>Supporting non-executable files</h3>
+
+    <div class="spec-block">
+      <table>
+        <thead><tr><th>File</th><th>Purpose</th></tr></thead>
+        <tbody>
+          <tr><td><code>data_generation/config.py</code></td><td>All tunable parameters for the data generator (seed, distributions, persona weights, transition matrices). Re-tuning the data does not require touching generation logic.</td></tr>
+          <tr><td><code>data_generation/personas.py</code></td><td>Persona assignment and per-persona consumption shape functions. Plus seasonal/noise modifiers.</td></tr>
+          <tr><td><code>data_generation/generate.py</code></td><td>Entity and event generators (csm_rep, accounts, contracts, usage logs, account_health, edge case injection).</td></tr>
+          <tr><td><code>data_generation/validators.py</code></td><td>Pre-write sanity gates. Generation aborts on any structural failure.</td></tr>
+          <tr><td><code>pipeline_and_tests/sql/existing_metrics/metrics_existing_account.sql</code></td><td>Computes TCV, ARR, raw utilization, latest health color, naive Gainsight-style CHS, one row per account.</td></tr>
+          <tr><td><code>pipeline_and_tests/sql/avri/avri_account.sql</code></td><td>Computes the four AVRI pillars + composite + floor rule + RAG color + tenure/renewal context. Per account.</td></tr>
+          <tr><td><code>pipeline_and_tests/sql/avri/avri_csm.sql</code></td><td>Dollar-weighted AVRI rolled up to CSM, with at-risk-renewal counts.</td></tr>
+          <tr><td><code>pipeline_and_tests/sql/avri/avri_region.sql</code></td><td>Same rollup at region grain.</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <h3>Documentation files</h3>
+
+    <div class="spec-block">
+      <table>
+        <thead><tr><th>File</th><th>Purpose</th></tr></thead>
+        <tbody>
+          <tr><td><a href="README.md" target="_blank"><code>README.md</code></a></td><td>Top-level project README with folder structure, quick-start, and phase status.</td></tr>
+          <tr><td><a href="specs/metric_v0.md" target="_blank"><code>specs/metric_v0.md</code></a></td><td>AVRI metric spec, initial hypothesis (full reference).</td></tr>
+          <tr><td><a href="specs/metric_v1.md" target="_blank"><code>specs/metric_v1.md</code></a></td><td>AVRI v1 / v1.1 / v1.2 refinement diffs (post-inspection).</td></tr>
+          <tr><td><a href="specs/data_generation_spec.md" target="_blank"><code>specs/data_generation_spec.md</code></a></td><td>Synthetic data spec, schemas, distributions, persona mix, edge case injection logic.</td></tr>
+          <tr><td><a href="specs/inspection_findings.md" target="_blank"><code>specs/inspection_findings.md</code></a></td><td>Auto-generated inspection report (regenerated each time <code>inspection.py</code> runs).</td></tr>
+          <tr><td><a href="specs/lessons_learned.md" target="_blank"><code>specs/lessons_learned.md</code></a></td><td>Running log of pitfalls, design tensions, and surprises. Source for the retrospective slide.</td></tr>
+          <tr><td><a href="pipeline_and_tests/README.md" target="_blank"><code>pipeline_and_tests/README.md</code></a></td><td>Pipeline-specific README with sanity-check queries.</td></tr>
+          <tr><td><a href="dashboard/README.md" target="_blank"><code>dashboard/README.md</code></a></td><td>Dashboard-specific README with 5-minute demo flow.</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+  </section>
+
+  <!-- ARCHITECTURE, How everything connects -->
+  <section id="architecture" class="view">
+    <h2>How It All Connects</h2>
+    <p class="lead">Five layers, left to right: code that generates the data, the cloud warehouse that stores it, the SQL that transforms it, the materialized output tables, and the things that consume those tables. Each arrow is a dependency.</p>
+
+    <div class="arch-wrap">
+      <div class="arch-grid">
+
+        <!-- COL 1: Generation -->
+        <div class="arch-col">
+          <div class="arch-col-header">1 · Generation</div>
+          <div class="arch-card python">
+            <div class="card-title">data_generation/</div>
+            <div class="card-sub">Synthetic data builder. Reproducible from <code>SEED=20260422</code>.</div>
+            <ul>
+              <li><b>main.py</b> · orchestrator</li>
+              <li>config.py · all parameters</li>
+              <li>personas.py · persona shapes</li>
+              <li>generate.py · table builders</li>
+              <li>validators.py · pre-write gates</li>
+            </ul>
+          </div>
+          <div class="arch-card output">
+            <div class="card-title">output/*.parquet</div>
+            <div class="card-sub">5 Parquet files (~12 MB) + manifest.json. Local artifacts.</div>
+          </div>
+          <div class="arch-card python">
+            <div class="card-title">load_to_bigquery.py</div>
+            <div class="card-sub">Uploads Parquet → BQ with explicit schemas. Idempotent (WRITE_TRUNCATE).</div>
+          </div>
+        </div>
+
+        <div class="arch-arrow">→</div>
+
+        <!-- COL 2: Source BQ tables -->
+        <div class="arch-col">
+          <div class="arch-col-header">2 · Source Storage</div>
+          <div class="arch-card bq">
+            <div class="card-title">BigQuery</div>
+            <div class="card-sub"><code>panw-gcs-northstar.gcs_north_star</code></div>
+            <div class="group-label" style="margin-top:10px">Source tables (5)</div>
+            <ul>
+              <li>csm_rep · 50</li>
+              <li>accounts · 1,000</li>
+              <li>contracts · 1,050</li>
+              <li>daily_usage_logs · ~294K</li>
+              <li>account_health · ~33K</li>
+            </ul>
+          </div>
+        </div>
+
+        <div class="arch-arrow">→</div>
+
+        <!-- COL 3: Pipeline / SQL -->
+        <div class="arch-col">
+          <div class="arch-col-header">3 · Transform</div>
+          <div class="arch-card python">
+            <div class="card-title">run_pipeline.py</div>
+            <div class="card-sub">Templates SQL with project/dataset/as-of-date, executes in dependency order.</div>
+          </div>
+          <div class="arch-card sql">
+            <div class="card-title">sql/existing_metrics/</div>
+            <ul>
+              <li>metrics_existing_account.sql</li>
+            </ul>
+          </div>
+          <div class="arch-card sql">
+            <div class="card-title">sql/avri/</div>
+            <ul>
+              <li>avri_account.sql</li>
+              <li>avri_csm.sql</li>
+              <li>avri_region.sql</li>
+            </ul>
+          </div>
+        </div>
+
+        <div class="arch-arrow">→</div>
+
+        <!-- COL 4: Materialized BQ tables -->
+        <div class="arch-col">
+          <div class="arch-col-header">4 · Materialized</div>
+          <div class="arch-card bq">
+            <div class="card-title">BigQuery</div>
+            <div class="card-sub"><code>panw-gcs-northstar.gcs_north_star</code></div>
+            <div class="group-label" style="margin-top:10px">Output tables (4)</div>
+            <ul>
+              <li>metrics_existing_account</li>
+              <li>avri_account</li>
+              <li>avri_csm</li>
+              <li>avri_region</li>
+            </ul>
+            <div class="card-sub" style="margin-top:8px">CREATE OR REPLACE, fully idempotent. Re-run any time.</div>
+          </div>
+        </div>
+
+        <div class="arch-arrow">→</div>
+
+        <!-- COL 5: Consumption -->
+        <div class="arch-col">
+          <div class="arch-col-header">5 · Consumption</div>
+          <div class="arch-card python">
+            <div class="card-title">inspection.py</div>
+            <div class="card-sub">~12 targeted queries. Comparative analysis AVRI vs existing.</div>
+          </div>
+          <div class="arch-card output">
+            <div class="card-title">specs/inspection_findings.md</div>
+            <div class="card-sub">11-section auto-generated report. Re-runs each time.</div>
+          </div>
+          <div class="arch-card python">
+            <div class="card-title">dashboard/app.py</div>
+            <div class="card-sub">Streamlit. 4 tabs · 10-min query cache.</div>
+            <ul>
+              <li>📊 Executive Overview</li>
+              <li>👤 CSM Detail</li>
+              <li>🔍 Account Drill-down</li>
+              <li>🚨 At-Risk Renewals</li>
+            </ul>
+          </div>
+        </div>
+
+      </div>
+
+      <div class="arch-legend">
+        <div><span class="swatch" style="background:#fffbeb; border-color:#d97706;"></span>Python (local execution)</div>
+        <div><span class="swatch" style="background:#eff6ff; border-color:#2563eb;"></span>BigQuery tables (cloud storage)</div>
+        <div><span class="swatch" style="background:#faf5ff; border-color:#7c3aed;"></span>SQL transforms (templated)</div>
+        <div><span class="swatch" style="background:#ecfdf5; border-color:#059669;"></span>Outputs (files / UI)</div>
+      </div>
+    </div>
+
+    <h3>Key architectural decisions</h3>
+
+    <div class="spec-block">
+      <div class="subhead">1 · Three-tier separation</div>
+      <p><strong>Generation, transformation, and presentation are decoupled.</strong> The Python data generator can be replaced with a real production data feed without touching the SQL pipeline. The SQL pipeline can be edited without touching the dashboard. The dashboard can be redesigned without re-running the pipeline. This is the standard analytics-engineering pattern (often called "extract-load-transform" or ELT) and it's what scales.</p>
+    </div>
+
+    <div class="spec-block">
+      <div class="subhead">2 · Local Parquet first, BigQuery second</div>
+      <p>The data generator writes Parquet files locally before they're uploaded to BigQuery. This means we can iterate on data shape without paying BigQuery query costs every time, and we have a portable artifact that anyone can inspect with pandas. The upload script is a separate, single-purpose tool, failure modes don't compound.</p>
+    </div>
+
+    <div class="spec-block">
+      <div class="subhead">3 · SQL as the canonical metric definition</div>
+      <p>The metric formulas live in SQL files, not Python or in the dashboard. This means the metric is portable, you could swap Streamlit for Looker, Tableau, or a Slack bot tomorrow, and the SQL is what they'd all read. SQL is also what data engineers and analytics PMs will need to read and modify in production. The brief explicitly grades on "dbt-style SQL," which is exactly this pattern.</p>
+    </div>
+
+    <div class="spec-block">
+      <div class="subhead">4 · Templated SQL with parameterized as-of-date</div>
+      <p>Every SQL file accepts a snapshot date as a parameter. Re-running the pipeline with <code>--as-of-date 2025-12-31</code> produces a fresh snapshot for that date, which is how production systems implement time-series metrics without rewriting queries.</p>
+    </div>
+
+    <div class="spec-block">
+      <div class="subhead">5 · Full reproducibility from one seed</div>
+      <p>Every random number in the data generator is sourced from <code>SEED=20260422</code>. Re-running on any machine produces byte-identical output. This is critical for the case study, anyone reviewing the repo can <code>git clone</code>, run the scripts, and produce the same dashboard the panelists saw.</p>
+    </div>
+
+    <div class="spec-block">
+      <div class="subhead">6 · Authentication via ADC, not embedded credentials</div>
+      <p>Every script that touches BigQuery reads credentials from <code>~/.config/gcloud/application_default_credentials.json</code>, written once by <code>gcloud auth application-default login</code>. No service account key files in the repo, no env vars to set. Standard pattern for any code that talks to GCP from a developer machine.</p>
+    </div>
+
+    <h3>What runs where</h3>
+
+    <div class="spec-block">
+      <table>
+        <thead><tr><th>Component</th><th>Where</th><th>What it costs</th></tr></thead>
+        <tbody>
+          <tr><td>Data generator (<code>main.py</code>)</td><td>Local Python</td><td>~4 seconds CPU</td></tr>
+          <tr><td>Parquet files</td><td>Local disk (12 MB)</td><td>Disk space</td></tr>
+          <tr><td>BigQuery upload</td><td>Local Python → GCP API</td><td>Free (Sandbox)</td></tr>
+          <tr><td>BQ source + materialized tables</td><td>BigQuery storage</td><td>Free (well under 10 GB Sandbox limit)</td></tr>
+          <tr><td>Pipeline SQL</td><td>BigQuery compute</td><td>Free (well under 1 TB/month Sandbox limit)</td></tr>
+          <tr><td>Inspection report</td><td>Local Python → markdown</td><td>~5 BQ queries</td></tr>
+          <tr><td>Dashboard</td><td>Local Streamlit (browser)</td><td>~10 BQ queries per tab load, cached 10 min</td></tr>
+        </tbody>
+      </table>
+      <p>Total monthly BigQuery cost for development + interview demo: <strong>$0</strong>. Sandbox tier covers everything.</p>
+    </div>
+  </section>
+
+  <!-- TAKEAWAYS -->
+  <section id="takeaways" class="view">
+    <h2>What to walk away with</h2>
+    <p class="lead">If you internalize three things from this document, these are they.</p>
+
+    <div class="takeaway">
+      <p><span class="num">1</span><strong>No single existing metric covers all four dimensions.</strong> The best standalone metrics (Utilization, NRR) cover at most two. Every raw metric has a blind spot that one of the five edge cases can exploit. This is the argument for a purpose-built composite, and the structure of this document is the proof.</p>
+    </div>
+
+    <div class="takeaway">
+      <p><span class="num">2</span><strong>Commercial metrics are uniformly lagging.</strong> TCV, ARR, NRR, GRR, every dollar-denominated metric tells you what already happened. The leading signal lives in consumption, adoption, and technical-health metrics. A comp plan built only on lagging dimensions pays people for last year's work. The North Star must embed leading signals.</p>
+    </div>
+
+    <div class="takeaway">
+      <p><span class="num">3</span><strong>Existing composites (Gainsight &amp; peers) have known gaps.</strong> They're the right <em>pattern</em> but they don't natively handle commit-vs-consume, consistent overages, spike-and-drop trajectory, or orphaned usage. Those gaps are exactly the whitespace your proposal fills. The opportunity isn't "invent a new health score", it's "build the health score PANW's business model actually needs."</p>
+    </div>
+
+    <h3>Open design questions to resolve next</h3>
+    <ul style="color:var(--text-soft)">
+      <li>Exact component list (4? 5? does Bookings deserve its own component or fold into Deployment realization?)</li>
+      <li>Weighting philosophy (equal weights? renewal-correlation-anchored? tunable per segment?)</li>
+      <li>Is the metric a pure score (0–100), a dollar-adjusted figure ("Effective ARR"), or both (score + $ rollup)?</li>
+      <li>Thresholds for red / yellow / green, derived how?</li>
+      <li>Momentum/trend: separate component or adjustment to each pillar?</li>
+      <li>How does the metric behave at account-level vs. aggregated up to rep/region?</li>
+    </ul>
+  </section>
+
+</main>
+
+<footer>
+  Working document for Principal IT PM case study · Palo Alto Networks GCS · Single-file, no dependencies.
+</footer>
+
+<script>
+  // ========= DATA =========
+  const metrics = [
+    // Commercial
+    { cat: "Commercial", name: "TCV", full: "Total Contract Value",
+      def: "Total dollar value committed over the entire contract term, booked at signing.",
+      dims: { bookings: "full", deployment: "none", tech: "none", usage: "none" },
+      ll: "Lag", game: "Low",
+      gameNote: "Hard to fake a signed contract value.",
+      short: "Rewards signing, blind to everything after. The exact problem GCS is moving away from.",
+      note: "The legacy metric at the center of this transition." },
+
+    { cat: "Commercial", name: "ARR", full: "Annual Recurring Revenue",
+      def: "Annualized value of the recurring subscription component, measured at a point in time.",
+      dims: { bookings: "full", deployment: "none", tech: "none", usage: "none" },
+      ll: "Lag", game: "Low",
+      gameNote: "Tied to signed contracts, low direct manipulation surface.",
+      short: "Customer can be paying and not using, 'zombie ARR.' Shelfware accounts look healthy.",
+      note: "The headline SaaS metric. Necessary but radically insufficient for this use case." },
+
+    { cat: "Commercial", name: "NRR", full: "Net Revenue Retention",
+      def: "(Starting ARR + Expansion − Churn − Contraction) / Starting ARR, typically measured trailing 12 months.",
+      dims: { bookings: "full", deployment: "none", tech: "none", usage: "partial" },
+      ll: "Lag", game: "Low",
+      gameNote: "Aggregate metric, little manipulation vector at account level.",
+      short: "Board-level, too aggregated for account-level decisions. Only surfaces problems at renewal, way too late.",
+      note: "Useful as a rollup validator, poor as a leading signal." },
+
+    { cat: "Commercial", name: "GRR", full: "Gross Revenue Retention",
+      def: "Retention of starting ARR excluding expansion; pure churn/contraction view.",
+      dims: { bookings: "full", deployment: "none", tech: "none", usage: "partial" },
+      ll: "Lag", game: "Low",
+      gameNote: "Same as NRR.",
+      short: "Same late-signal problem as NRR. Pure churn view tells you about failures, not about action.",
+      note: "" },
+
+    { cat: "Commercial", name: "Consumption Revenue / Burn Rate", full: "Credits consumed × price, or % of committed credits burned",
+      def: "Revenue recognized as the customer draws down usage-based commit, or the rate at which committed credits are consumed.",
+      dims: { bookings: "partial", deployment: "partial", tech: "none", usage: "full" },
+      ll: "Lead", game: "Medium",
+      gameNote: "Rep can encourage customers to burn credits without value, classic consumption-model risk.",
+      short: "Raw burn can't distinguish healthy steady use from spike-and-drop. Level without trend is deceptive.",
+      note: "Core input metric, but needs to be paired with trajectory to be trustworthy." },
+
+    { cat: "Commercial", name: "Expansion ARR", full: "Expansion Annual Recurring Revenue",
+      def: "Incremental ARR from existing accounts (upsells, cross-sells, price increases).",
+      dims: { bookings: "none", deployment: "partial", tech: "none", usage: "partial" },
+      ll: "Lag", game: "Low",
+      gameNote: "Requires actual contract signing.",
+      short: "Tells you about growth, not health. A flat account can still be perfectly deployed and usage-healthy.",
+      note: "" },
+
+    { cat: "Commercial", name: "RPO", full: "Remaining Performance Obligation",
+      def: "Dollars committed but not yet recognized as revenue. A GAAP/accounting figure.",
+      dims: { bookings: "full", deployment: "none", tech: "none", usage: "none" },
+      ll: "Lag", game: "Low",
+      gameNote: "Audited accounting figure.",
+      short: "Accounting metric. Same blindness as TCV to what's happening in the product.",
+      note: "" },
+
+    // Consumption / Adoption
+    { cat: "Consumption", name: "Utilization Rate", full: "Consumed credits / purchased credits",
+      def: "Ratio of actual consumption to committed/purchased capacity over a defined window.",
+      dims: { bookings: "none", deployment: "partial", tech: "none", usage: "full" },
+      ll: "Lag", game: "Medium",
+      gameNote: "Rep can push customers to burn credits to hit a target.",
+      short: "Snapshot, can't distinguish spike-and-drop from healthy steady use. 120% overage and 90% steady look equally 'high' without context.",
+      note: "The single most-cited metric in consumption models. Indispensable, but must be paired with trajectory." },
+
+    { cat: "Consumption", name: "TTFV", full: "Time-to-First-Value",
+      def: "Days from contract signing to first meaningful product event (first login, first integration, first deployment milestone).",
+      dims: { bookings: "none", deployment: "full", tech: "none", usage: "partial" },
+      ll: "Lead", game: "Medium",
+      gameNote: "Definition of 'first value' can be shifted to favorable events.",
+      short: "One-time event. Tells you about onboarding quality, silent on the rest of the lifecycle.",
+      note: "Good onboarding KPI, not a full health metric." },
+
+    { cat: "Consumption", name: "TTV", full: "Time-to-Value",
+      def: "Days for the customer to reach a defined business outcome (not just first product event).",
+      dims: { bookings: "none", deployment: "full", tech: "none", usage: "partial" },
+      ll: "Lead", game: "Medium",
+      gameNote: "Definition of 'business outcome' is subjective.",
+      short: "Requires a per-account definition of 'value'. Hard at scale, subjective, inconsistent.",
+      note: "" },
+
+    { cat: "Consumption", name: "Feature Adoption Breadth", full: "Number of key features used / total features",
+      def: "Count of key/mandatory features actively used by the account, divided by the full feature set.",
+      dims: { bookings: "none", deployment: "full", tech: "none", usage: "partial" },
+      ll: "Lead", game: "Medium",
+      gameNote: "Light touches on many features can satisfy the metric without real adoption.",
+      short: "Breadth ≠ depth. A shallow sweep across features looks the same as deep use of the right few.",
+      note: "" },
+
+    { cat: "Consumption", name: "Feature Adoption Depth", full: "Frequency / intensity of use per feature",
+      def: "Per-feature usage intensity, events, sessions, API calls, volume processed.",
+      dims: { bookings: "none", deployment: "partial", tech: "none", usage: "full" },
+      ll: "Lead", game: "Medium",
+      gameNote: "Only features with strong real value are hard to inflate.",
+      short: "Hard to aggregate across features with very different usage shapes. Normalization is a real engineering problem.",
+      note: "" },
+
+    { cat: "Consumption", name: "Stickiness (DAU/MAU)", full: "Daily Active Users / Monthly Active Users",
+      def: "Ratio of daily to monthly active users; measures how concentrated engagement is.",
+      dims: { bookings: "none", deployment: "none", tech: "none", usage: "full" },
+      ll: "Lead", game: "Low",
+      gameNote: "Behavioral, genuinely hard to fake at scale.",
+      short: "Captures human-user engagement. Misses automated / API / machine workloads, which are huge in infosec products.",
+      note: "Strong retention signal but needs to be weighted lower for API-heavy products." },
+
+    { cat: "Consumption", name: "License Provisioning Rate", full: "% of licenses assigned to named users",
+      def: "Share of purchased licenses/seats that have been assigned to users in the product admin console.",
+      dims: { bookings: "none", deployment: "full", tech: "none", usage: "none" },
+      ll: "Lead", game: "High",
+      gameNote: "Easy to provision licenses to inactive users to clear a bar.",
+      short: "Provisioning ≠ activation. Assigned licenses can sit dormant.",
+      note: "Necessary floor check, insufficient on its own." },
+
+    { cat: "Consumption", name: "Deployment Milestone Attainment", full: "% of onboarding milestones completed on schedule",
+      def: "Share of predefined onboarding/deployment milestones (configs, integrations, training) completed within target windows.",
+      dims: { bookings: "none", deployment: "full", tech: "none", usage: "none" },
+      ll: "Lead", game: "Medium",
+      gameNote: "Milestones are CSM-defined and can be set low.",
+      short: "Requires predefined milestones per product and customer segment; high operational overhead to maintain.",
+      note: "" },
+
+    // Technical
+    { cat: "Technical", name: "Support Ticket Volume", full: "Tickets opened per account per period",
+      def: "Raw count of support tickets opened by the account over a rolling window.",
+      dims: { bookings: "none", deployment: "none", tech: "full", usage: "partial" },
+      ll: "Lead", game: "Medium",
+      gameNote: "CSMs can coach accounts to call instead of ticket.",
+      short: "Ambiguous signal, high volume can mean heavy engagement OR pain. Needs severity context.",
+      note: "" },
+
+    { cat: "Technical", name: "Ticket Severity Mix", full: "Distribution of Sev-1/2/3/4",
+      def: "Breakdown of tickets by severity level, often weighted into a single severity index.",
+      dims: { bookings: "none", deployment: "none", tech: "full", usage: "none" },
+      ll: "Lead", game: "Medium",
+      gameNote: "Severity triage is subjective at intake.",
+      short: "Captures incidents, not resolution quality. A flood of Sev-3s may be a worse signal than one Sev-1.",
+      note: "" },
+
+    { cat: "Technical", name: "Sev-1 Frequency", full: "Rate of critical production issues",
+      def: "Count of Sev-1 (business-impacting) tickets per account per quarter.",
+      dims: { bookings: "none", deployment: "none", tech: "full", usage: "partial" },
+      ll: "Lead", game: "Low",
+      gameNote: "Sev-1s are generally well-documented and audited.",
+      short: "Strong churn predictor, but rare events, statistically noisy at account level. Aggregate before acting.",
+      note: "" },
+
+    { cat: "Technical", name: "MTTR", full: "Mean Time to Resolve",
+      def: "Average time from ticket open to resolution across the account.",
+      dims: { bookings: "none", deployment: "none", tech: "full", usage: "none" },
+      ll: "Lag", game: "Low",
+      gameNote: "Vendor-side metric, low rep influence.",
+      short: "Measures the vendor's performance, not the account's health.",
+      note: "" },
+
+    { cat: "Technical", name: "SLA Attainment", full: "% of time SLA commitments met",
+      def: "Share of SLA-tracked events (uptime, response time) meeting the contractual commitment.",
+      dims: { bookings: "none", deployment: "none", tech: "full", usage: "none" },
+      ll: "Lag", game: "Low",
+      gameNote: "Audited commitment.",
+      short: "Vendor-controlled. Doesn't capture how the customer is doing, only how we're doing for them.",
+      note: "" },
+
+    { cat: "Technical", name: "Escalation Count", full: "Number of formal escalations",
+      def: "Count of exec-level, CS-management, or engineering escalations logged for the account.",
+      dims: { bookings: "none", deployment: "none", tech: "full", usage: "partial" },
+      ll: "Lead", game: "Medium",
+      gameNote: "What counts as an 'escalation' varies by org.",
+      short: "Lumpy and qualitative, organizational inconsistency in what gets logged.",
+      note: "" },
+
+    // Sentiment
+    { cat: "Sentiment", name: "NPS", full: "Net Promoter Score",
+      def: "Survey: 'How likely are you to recommend us?' on 0–10, scored as promoters − detractors.",
+      dims: { bookings: "none", deployment: "none", tech: "partial", usage: "partial" },
+      ll: "Lead", game: "High",
+      gameNote: "Timing surveys post-win, sampling bias, cherry-picking respondents.",
+      short: "Survey-based, low response rates, heavy selection bias, infrequent. Not pipeline-able in real-time.",
+      note: "" },
+
+    { cat: "Sentiment", name: "CSAT", full: "Customer Satisfaction Score",
+      def: "Per-interaction satisfaction survey, typically 1–5 or 1–7 scale.",
+      dims: { bookings: "none", deployment: "none", tech: "full", usage: "none" },
+      ll: "Lag", game: "High",
+      gameNote: "Interaction timing and phrasing heavily bias results.",
+      short: "Measures support experience, not product health.",
+      note: "" },
+
+    { cat: "Sentiment", name: "CES", full: "Customer Effort Score",
+      def: "Survey: 'How easy was it to get X done?'",
+      dims: { bookings: "none", deployment: "partial", tech: "full", usage: "none" },
+      ll: "Lag", game: "High",
+      gameNote: "Same survey-fatigue issues as NPS.",
+      short: "Same survey-fatigue and selection-bias issues as NPS.",
+      note: "" },
+
+    { cat: "Sentiment", name: "Exec Sponsor Engagement", full: "QBR attendance, exec touchpoints",
+      def: "Tracking of executive sponsor activity: QBR attendance, executive meetings, roadmap sessions.",
+      dims: { bookings: "none", deployment: "none", tech: "none", usage: "partial" },
+      ll: "Lead", game: "High",
+      gameNote: "CSM-logged, highly manipulable.",
+      short: "Hard to quantify consistently. Vanity metric risk.",
+      note: "" },
+
+    // Composite
+    { cat: "Composite", name: "Gainsight CHS", full: "Customer Health Score (Gainsight pattern)",
+      def: "Weighted composite of usage, support, sentiment, and financial signals, typically rendered as a 0–100 score or Red/Yellow/Green.",
+      dims: { bookings: "partial", deployment: "partial", tech: "full", usage: "full" },
+      ll: "Lead", game: "Medium",
+      gameNote: "Depends on which components are weighted, tuning biases can creep in.",
+      short: "Closest thing to what we need, BUT: weights are often arbitrary, 'financial' typically ignores commit-vs-consume, and no native handling of overages, orphaned usage, or trajectory.",
+      note: "The right pattern. The GCS metric is essentially a domain-specialized CHS." },
+
+    { cat: "Composite", name: "Churn Risk Score", full: "ML-predicted probability of churn",
+      def: "A supervised-learning model that outputs probability of churn within N days, trained on historical renewal outcomes.",
+      dims: { bookings: "partial", deployment: "partial", tech: "partial", usage: "full" },
+      ll: "Lead", game: "Low",
+      gameNote: "Model is harder to game than hand-tuned weights.",
+      short: "Black-box outputs don't tell reps WHAT to do. Not explainable enough for comp plans, reps will reject it.",
+      note: "Great internal signal, poor as a public-facing North Star." },
+
+    { cat: "Composite", name: "Red/Yellow/Green Status", full: "Manual CSM health color",
+      def: "Manual CSM-assigned health color, often with a short rationale note.",
+      dims: { bookings: "partial", deployment: "partial", tech: "partial", usage: "partial" },
+      ll: "Lead", game: "High",
+      gameNote: "Entirely subjective and prone to sandbagging.",
+      short: "Subjective, inconsistent across reps, prone to sandbagging right before reviews.",
+      note: "Useful as a qualitative CSM overlay, not as a metric." }
+  ];
+
+  // ========= RENDER =========
+  const tbody = document.getElementById('metrics-body');
+  const countEl = document.getElementById('count');
+
+  function covDot(level) {
+    return `<span class="cov-dot ${level}" title="${level}"></span>`;
+  }
+
+  function catClass(c) {
+    return "cat-" + c.toLowerCase();
+  }
+
+  function render() {
+    const fCat = document.getElementById('f-category').value;
+    const fDim = document.getElementById('f-dim').value;
+    const fLL = document.getElementById('f-ll').value;
+    const fSearch = document.getElementById('f-search').value.toLowerCase().trim();
+    const showGame = document.getElementById('t-game').checked;
+
+    document.querySelectorAll('.game-col').forEach(el => el.style.display = showGame ? '' : 'none');
+    document.querySelectorAll('.game-col-el').forEach(el => el.style.display = showGame ? '' : 'none');
+
+    const filtered = metrics.filter(m => {
+      if (fCat !== 'all' && m.cat !== fCat) return false;
+      if (fDim !== 'all' && m.dims[fDim] === 'none') return false;
+      if (fLL !== 'all' && m.ll !== fLL) return false;
+      if (fSearch) {
+        const hay = (m.name + " " + m.full + " " + m.def + " " + m.short).toLowerCase();
+        if (!hay.includes(fSearch)) return false;
+      }
+      return true;
+    });
+
+    countEl.textContent = `${filtered.length} of ${metrics.length}`;
+
+    tbody.innerHTML = filtered.map((m, i) => `
+      <tr data-idx="${i}" class="main-row">
+        <td class="name">${m.name}<span class="full">${m.full}</span></td>
+        <td class="cat"><span class="pill ${catClass(m.cat)}">${m.cat}</span></td>
+        <td class="dim-cell dim-bkg">${covDot(m.dims.bookings)}</td>
+        <td class="dim-cell dim-dep">${covDot(m.dims.deployment)}</td>
+        <td class="dim-cell dim-th">${covDot(m.dims.tech)}</td>
+        <td class="dim-cell dim-us">${covDot(m.dims.usage)}</td>
+        <td><span class="pill ${m.ll === 'Lead' ? 'lead' : 'lag'}">${m.ll}</span></td>
+        <td class="game-col" style="display:${showGame ? '' : 'none'}"><span class="pill game-${m.game.toLowerCase()}">${m.game}</span></td>
+        <td>${m.short}</td>
+      </tr>
+      <tr class="detail-row" data-idx="${i}">
+        <td colspan="${showGame ? 9 : 8}">
+          <div class="detail-grid">
+            <div class="detail-block">
+              <div class="label">Full definition</div>
+              <div class="body">${m.def}</div>
+            </div>
+            <div class="detail-block">
+              <div class="label">Gameability detail</div>
+              <div class="body"><strong>${m.game}.</strong> ${m.gameNote}</div>
+            </div>
+            ${m.note ? `<div class="detail-block">
+              <div class="label">PM commentary</div>
+              <div class="body">${m.note}</div>
+            </div>` : ''}
+          </div>
+        </td>
+      </tr>
+    `).join('');
+
+    // Attach click handlers for expansion
+    tbody.querySelectorAll('tr.main-row').forEach(row => {
+      row.addEventListener('click', () => {
+        const idx = row.getAttribute('data-idx');
+        const detail = tbody.querySelector(`tr.detail-row[data-idx="${idx}"]`);
+        detail.classList.toggle('open');
+        row.classList.toggle('expanded');
+      });
+    });
+  }
+
+  // ========= PROJECT MAP, PHASE SWITCHING =========
+  document.querySelectorAll('.phase-bar-item').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const phase = btn.getAttribute('data-phase');
+      document.querySelectorAll('.phase-bar-item').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      document.querySelectorAll('.phase-content').forEach(c => c.style.display = 'none');
+      const target = document.getElementById('content-' + phase);
+      if (target) target.style.display = 'block';
+    });
+  });
+
+  // ========= STEP CARDS, EXPAND/COLLAPSE =========
+  document.querySelectorAll('[data-toggle]').forEach(head => {
+    head.addEventListener('click', () => {
+      const card = head.closest('.step-card');
+      if (card) card.classList.toggle('open');
+    });
+  });
+
+  // ========= JUMP TO TAB FROM STEP CARDS =========
+  document.querySelectorAll('[data-jump-tab]').forEach(btn => {
+    btn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      const tabName = btn.getAttribute('data-jump-tab');
+      const tabBtn = document.querySelector(`.tab-btn[data-tab="${tabName}"]`);
+      if (tabBtn) tabBtn.click();
+    });
+  });
+
+  // ========= TAB NAV =========
+  document.querySelectorAll('.tab-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const tab = btn.getAttribute('data-tab');
+      document.querySelectorAll('.tab-btn').forEach(b => b.classList.toggle('active', b === btn));
+      document.querySelectorAll('section.view').forEach(s => s.classList.toggle('active', s.id === tab));
+      window.scrollTo({ top: 0, behavior: 'instant' });
+    });
+  });
+
+  // ========= FILTER WIRING =========
+  ['f-category', 'f-dim', 'f-ll', 'f-search', 't-game'].forEach(id => {
+    document.getElementById(id).addEventListener('input', render);
+    document.getElementById(id).addEventListener('change', render);
+  });
+
+  render();
+
+  // ========= DEFENDING CHOICES =========
+  const choices = [
+    // ---- WEIGHTS ----
+    { id: "w-cr", cat: "weight", value: "30%", vsub: "weight",
+      title: "Commit Realization weight",
+      where: "AVRI composite formula",
+      why: "CR captures the most direct expression of value realization, are they consuming what they paid for. Tied with UM at the top of the weighting because consumption level + trajectory each tell half the story.",
+      range: "25–40%. Below 20% removes meaningful contribution; above 40% over-emphasizes a single dimension at the expense of TH and DM.",
+      prod: "Regress historical CR scores against renewal outcomes; weight ∝ correlation strength.",
+      defense: "CR + UM together are 60% of the score. Consumption is the truest signal of value, and level + trajectory together capture both halves of the story. The 30/30 tie is deliberate." },
+
+    { id: "w-um", cat: "weight", value: "30%", vsub: "weight",
+      title: "Usage Momentum weight",
+      where: "AVRI composite formula",
+      why: "Trajectory matters as much as level. Without UM, spike-and-drop is invisible to the score, Month 1 burst still inflates an annual utilization view.",
+      range: "25–40%. Same envelope as CR. Tied weighting reflects 'level and trend are equally important.'",
+      prod: "Same as CR, regress against renewal outcomes. Strong empirical support that trend is a primary churn predictor.",
+      defense: "Tied with CR by intent. Trajectory matters as much as current level, without UM, spike-and-drop is a complete blind spot." },
+
+    { id: "w-dm", cat: "weight", value: "20%", vsub: "weight",
+      title: "Deployment Maturity weight",
+      where: "AVRI composite formula",
+      why: "Deployment is foundational but in v0 we're using a proxy (active-day breadth) rather than rich deployment signal. Lower weight reflects that limitation.",
+      range: "15–30%. With license provisioning, feature adoption, and onboarding milestones available in production, would justify 25–30%.",
+      prod: "Anchor against renewal correlation. Weight should rise as deployment data quality improves.",
+      defense: "DM is 20% in v0 because we're using a proxy. With richer deployment data, license provisioning, feature adoption, onboarding milestones, I'd argue for 25–30% in v1." },
+
+    { id: "w-th", cat: "weight", value: "20%", vsub: "weight",
+      title: "Technical Health weight",
+      where: "AVRI composite formula",
+      why: "Tech health is critical but rare-event-driven; high weight in a linear average would create noisy scores. The floor rule does the heavy lifting for the asymmetric punishment when TH is genuinely bad.",
+      range: "15–30%. Higher in tech-heavy products; lower in mature commodity products.",
+      prod: "Regress against renewal outcomes. The floor rule's threshold is the second tunable knob.",
+      defense: "TH is 20% but with a floor rule. The floor rule handles 'when tech health is bad it really matters', that's why I don't need to weight it higher in the linear average." },
+
+    // ---- THRESHOLDS ----
+    { id: "t-green", cat: "thresh", value: "≥75", vsub: "Green",
+      title: "Green threshold",
+      where: "RAG color mapping",
+      why: "75 is roughly 'every pillar contributing positively' under the 30/30/20/20 weights. You can't get to 75 with any single pillar at 50 or below, it requires broad health.",
+      range: "70–80. 70 makes Green more common (looser); 80 makes it stricter and less actionable.",
+      prod: "Calibrate so ~30–40% of accounts land Green and Green accounts have <5% churn rate over the next 90 days.",
+      defense: "75 reflects 'every pillar contributing positively' under our weights. Below 75 you need weakness in at least one dimension. We'd validate against historical renewal rates." },
+
+    { id: "t-yellow", cat: "thresh", value: "50–74", vsub: "Yellow",
+      title: "Yellow band",
+      where: "RAG color mapping",
+      why: "Yellow is the action zone, at least one pillar is materially underperforming and the account warrants CSM attention.",
+      range: "Implied by Green/Red boundaries. Width matters: too wide means everything is Yellow and the signal is meaningless; too narrow and the metric flips between Green and Red.",
+      prod: "Tune so Yellow accounts have a 10–25% 90-day churn probability, meaningfully different from Green and Red.",
+      defense: "Yellow is the action zone. The width is set so the band is meaningful, neither so wide everything's Yellow nor so narrow it's a coin flip." },
+
+    { id: "t-red", cat: "thresh", value: "<50", vsub: "Red",
+      title: "Red threshold",
+      where: "RAG color mapping",
+      why: "50 is roughly 'two pillars failing or one pillar in critical state.' Below this, the account requires escalation, not just CSM attention.",
+      range: "40–55. Tighter (40) reserves Red for acute crises; looser (55) catches more risk earlier.",
+      prod: "Set such that Red accounts have >25% probability of churn in the next 90 days.",
+      defense: "50 is the point where multiple pillars are underperforming. We'd calibrate against churn rates, Red should mean 'meaningful renewal risk', not just 'mildly weak.'" },
+
+    // ---- FLOOR RULE ----
+    { id: "f-trigger", cat: "floor", value: "TH<30", vsub: "Trigger",
+      title: "Floor rule trigger",
+      where: "AVRI composite, post-weighting",
+      why: "TH < 30 means health color has been mostly red over the trailing 90 days, a clear signal of platform pain. Below this, the customer's experience is broken regardless of usage.",
+      range: "25–35. Tighter (25) makes the rule rarely fire; looser (35) makes it overly aggressive and frequently overrides the linear score.",
+      prod: "Calibrate to the TH score below which 90-day churn probability exceeds 40%.",
+      defense: "30 is roughly 'mostly red over 90 days.' Below this, no amount of usage will save the renewal, the floor rule encodes that asymmetry that linear weighted averages can't express." },
+
+    { id: "f-cap", cat: "floor", value: "≤50", vsub: "Cap",
+      title: "Floor rule cap",
+      where: "AVRI composite, post-weighting",
+      why: "When the floor rule triggers, the cap forces the account to Yellow at best, never Green. The signal is: tech health must be addressed before this account can be considered healthy.",
+      range: "40–60. Cap should be at or just below the Green threshold (75). Cap at 50 = forced into Yellow band.",
+      prod: "Set just below Green threshold so triggered accounts always require attention.",
+      defense: "Cap at 50 forces the account into Watch. The exact number is less important than the principle: high CR can't paper over critical TH." },
+
+    // ---- CURVES ----
+    { id: "c-cr-sweet", cat: "curve", value: "50–110%", vsub: "CR sweet spot",
+      title: "CR sweet spot range",
+      where: "Commit Realization score curve",
+      why: "Below 50% utilization, customers are clearly under-realizing. Between 50% and 110%, they're getting good value, and from a renewal perspective, going from 70% to 90% doesn't materially change renewal probability. The flat plateau reflects that.",
+      range: "40–120% as alternative bounds. 60–110% would be stricter; 50–130% more forgiving.",
+      prod: "Bucket accounts by historical utilization, plot renewal rate per bucket, and identify the flat region.",
+      defense: "Above 50% utilization, customers are getting value. Between 50% and 110%, going higher doesn't really change the renewal story, that's why it's a flat plateau, not a linear ramp. The right endpoints come from regression in production." },
+
+    { id: "c-cr-overage", cat: "curve", value: "110–150%", vsub: "Expansion zone",
+      title: "CR expansion zone",
+      where: "Commit Realization score curve",
+      why: "Over-consumption above 110% but below 150% is mostly a positive signal, the customer wants more product than they bought. Score stays at 100; a separate 'expansion candidate' flag fires.",
+      range: "100–150% or 110–200% are both defensible. The principle is: over-consumption ≠ failure.",
+      prod: "Validate that this band correlates with expansion bookings, not churn.",
+      defense: "Over-consumption is positive, the customer is consuming more than they bought. We don't penalize them for it, but we surface it separately as an expansion conversation cue." },
+
+    { id: "c-cr-decay", cat: "curve", value: ">150%", vsub: "Capacity risk",
+      title: "CR over-150% gentle decay",
+      where: "Commit Realization score curve",
+      why: "Above 150%, over-consumption starts producing customer pain, overage charges, capacity errors, hard limits. Gentle decay (not collapse) reflects 'still healthy but worth a conversation.'",
+      range: "Trigger at 130–200%. Decay rate 0.3–0.7 per percentage point above trigger.",
+      prod: "Look for the utilization band where customer-reported issues (NPS dips, escalations) start appearing.",
+      defense: "Over-consumption is mostly good until the customer feels pain, overage bills, capacity hits. The gentle decay reflects 'still healthy, but worth a conversation,' not 'failing.'" },
+
+    { id: "c-um-cap", cat: "curve", value: "≥1.0 → 100", vsub: "UM cap",
+      title: "UM upper cap at ratio 1.0",
+      where: "Usage Momentum score curve",
+      why: "Capping at 1.0 prevents accounts that are ramping aggressively from inflating the score artificially. The metric should reward sustained healthy usage, not reward bursts.",
+      range: "Could also cap at 1.1 or 1.2 for slight bonus to growers. Risk: encourages burst behavior.",
+      prod: "If ramping accounts are systematically under-rewarded (bad expansion-rep experience), reconsider. Otherwise, holds.",
+      defense: "1.0 means 'still going strong.' Anything below indicates decay; anything above is fine but doesn't need extra credit. Capping prevents ramping accounts from gaming the score." },
+
+    { id: "c-um-decay", cat: "curve", value: "<0.3 → severe", vsub: "Spike-drop catch",
+      title: "UM severe decay zone",
+      where: "Usage Momentum score curve",
+      why: "A 70%+ drop from baseline over 90 days IS the spike-and-drop pattern. Below this ratio the score should drop sharply to flag urgency, not gradually.",
+      range: "0.2–0.4 trigger. Looser thresholds delay action but reduce false positives.",
+      prod: "Bucket by momentum ratio, plot churn probability, identify the inflection point where probability spikes.",
+      defense: "70%+ drop from 12-month average is severe, that's exactly the spike-and-drop pattern. We want a steep penalty here so the metric clearly flags it, not a smooth ramp." },
+
+    // ---- TIME WINDOWS ----
+    { id: "tw-90", cat: "window", value: "90 days", vsub: "Recent window",
+      title: "90-day momentum / deployment window",
+      where: "UM, DM, TH calculations",
+      why: "90 days is responsive enough to catch quarter-on-quarter changes but long enough to dampen weekly noise. Aligns with the QBR cadence, CSMs already think in quarters.",
+      range: "60–120 days. 60 is more responsive but noisier; 120 is smoother but slower to react to lifecycle inflections.",
+      prod: "Test multiple windows against renewal prediction lift; pick the window with best precision/recall tradeoff.",
+      defense: "Quarter-aligned. Long enough to dampen noise, short enough to react to lifecycle changes. CSMs already operate in quarterly cadence; the metric matches their workflow." },
+
+    { id: "tw-12", cat: "window", value: "12 months", vsub: "Baseline",
+      title: "12-month baseline window",
+      where: "Usage Momentum ratio denominator",
+      why: "Captures full annual cycle including seasonality. Avoids comparing peak season to trough, Retail accounts would otherwise look like spike-and-drop every January.",
+      range: "9–18 months. <9 risks seasonal contamination; >18 introduces stale data that doesn't reflect current customer state.",
+      prod: "Test 6/12/18 month baselines for prediction stability.",
+      defense: "Full year normalizes for seasonality. Customers in Retail or Education would otherwise get penalized just for cycle timing." },
+
+    // ---- AGGREGATION ----
+    { id: "agg-dollar", cat: "agg", value: "$-weighted", vsub: "Rollup",
+      title: "Dollar-weighted CSM/region rollup",
+      where: "AVRI rollup to csm_id and region",
+      why: "A CSM's portfolio health should reflect the dollars they own. A 10K shelfware account shouldn't tank a CSM with a $10M Enterprise book; a $5M account in trouble should dominate the score.",
+      range: "Pure $-weighted vs hybrid (e.g., 70% $-weighted + 30% equal-weighted) to ensure long-tail accounts still get attention.",
+      prod: "Likely a hybrid in production: dollar-weighted for primary number, equal-weighted as a secondary 'long-tail attention' metric.",
+      defense: "We measure CSMs on the dollars they own. Equal-weighting penalizes reps with diverse books and doesn't reflect business impact. The risk is ignoring long tail, solve that with a separate equal-weighted long-tail metric, not by polluting the headline." },
+
+    { id: "agg-decay", cat: "agg", value: "0.95", vsub: "Color decay",
+      title: "Health-color decay factor",
+      where: "TH calculation (exponential weighting)",
+      why: "0.95 daily decay gives a half-life of ~14 days. Today's color matters more than last month's, but not so much that one-day blips dominate.",
+      range: "0.92–0.98. Lower (0.90) emphasizes very recent data; higher (0.98) treats the 90-day window more uniformly.",
+      prod: "Tune by simulating against churn outcomes, find the decay rate that maximizes prediction lift.",
+      defense: "Half-life of about two weeks. Recent color matters more than last month's, but not so much that one-day blips dominate the score." },
+
+    { id: "agg-colors", cat: "agg", value: "100/50/0", vsub: "Color values",
+      title: "Health color score values",
+      where: "TH calculation",
+      why: "Linear/equal spacing across the three states. Green is the goal, red is the alarm, yellow sits in the middle. Defensible default.",
+      range: "Could use 100/40/0 or 100/60/10. Lower yellow value makes the score more punishing.",
+      prod: "Empirical: regress churn rate against time-in-yellow vs time-in-red to set yellow's score.",
+      defense: "Linear spacing is the simplest defensible default. We could weight yellow lower to make the score more punishing, that's a calibration question, not a structural one." },
+
+    // ---- DATA GENERATION ----
+    { id: "d-spike", cat: "data", value: "5%", vsub: "Spike-drop rate",
+      title: "Spike & Drop persona %",
+      where: "Data generation, persona mix",
+      why: "Brief specifies 5%. Aligns with industry consumption-model literature suggesting ~3–7% of accounts exhibit 'all-in early then disengaged' patterns, often driven by mis-sized initial deals.",
+      range: "Locked by brief. In production, the actual rate is what we'd measure and report.",
+      prod: "N/A, this is a brief constraint.",
+      defense: "Brief specifies 5%. Industry data on consumption-model behaviors supports this as a realistic range." },
+
+    { id: "d-shelf", cat: "data", value: "10%", vsub: "Shelfware rate",
+      title: "Shelfware persona %",
+      where: "Data generation, persona mix",
+      why: "Brief specifies 10%. Aligns with Gartner-style estimates that 10–20% of enterprise SaaS spend is unused at any given time.",
+      range: "Locked by brief.",
+      prod: "N/A, this is a brief constraint.",
+      defense: "Brief specifies 10%, which aligns with public estimates of B2B SaaS shelfware rates (typically 10–20%)." },
+
+    { id: "d-overage", cat: "data", value: "15%", vsub: "Overage rate",
+      title: "Consistent Overage persona %",
+      where: "Data generation, persona mix",
+      why: "Brief specifies 15%. Higher than spike-drop or shelfware because consistent over-consumption is a feature of healthy growing accounts in well-fitting products, relatively common.",
+      range: "Locked by brief.",
+      prod: "N/A, this is a brief constraint.",
+      defense: "Brief specifies 15%. Higher than the failure-mode personas because it reflects healthy adoption, common in well-fitting consumption products." },
+
+    { id: "d-noise", cat: "data", value: "σ=0.15", vsub: "Daily noise",
+      title: "Daily consumption noise level",
+      where: "Data generation, time-series shape",
+      why: "15% daily standard deviation (multiplicative, Gaussian) is a realistic mid-range for B2B usage. Less makes the data look unrealistically clean; more makes signal hard to extract.",
+      range: "0.10–0.25. Aggressive noise (>0.25) tests metric robustness; gentle (<0.10) makes everything too pristine.",
+      prod: "N/A, this is a synthetic-data parameter.",
+      defense: "15% noise is realistic for B2B usage at the daily level. We clip to [0.5, 1.5] to prevent runaway draws." },
+
+    { id: "d-weekend", cat: "data", value: "0.6×", vsub: "Weekend dampener",
+      title: "Weekend seasonality multiplier",
+      where: "Data generation, time-series shape",
+      why: "Weekday/weekend differential is a near-universal pattern in B2B SaaS. 60% of weekday baseline is conservative, many products see weekends at 30–50%.",
+      range: "0.4–0.8. PANW's actual product mix likely runs 0.5–0.7.",
+      prod: "N/A, synthetic parameter.",
+      defense: "Reflects the universal B2B weekday pattern. Conservative compared to many products, could go to 0.4–0.5 if we wanted more dramatic seasonality." },
+
+    { id: "d-markov", cat: "data", value: "P(g→g)=0.85", vsub: "Color stickiness",
+      title: "Health color Markov stickiness",
+      where: "Data generation, account_health.health_color",
+      why: "Setting green-to-green at 0.85 produces realistic color stability, accounts don't flip status weekly. Reflects real CSM-rated color behavior.",
+      range: "0.75–0.95 for the diagonal. Lower diagonals make colors flip more; higher makes them stickier.",
+      prod: "N/A, synthetic.",
+      defense: "Real CSM-rated colors are sticky, they don't change weekly. The transition matrix produces ~80% of healthy accounts staying green over a quarter, which matches industry observation." }
+  ];
+
+  function renderChoices() {
+    const search = (document.getElementById('def-search').value || '').toLowerCase().trim();
+    const activeBtn = document.querySelector('.def-cat-pill.active');
+    const cat = activeBtn ? activeBtn.getAttribute('data-cat') : 'all';
+
+    const filtered = choices.filter(c => {
+      if (cat !== 'all' && c.cat !== cat) return false;
+      if (search) {
+        const hay = (c.title + " " + c.where + " " + c.why + " " + c.defense + " " + c.value).toLowerCase();
+        if (!hay.includes(search)) return false;
+      }
+      return true;
+    });
+
+    document.getElementById('def-count').textContent = `${filtered.length} of ${choices.length}`;
+
+    document.getElementById('def-grid').innerHTML = filtered.map(c => `
+      <div class="def-card" id="card-${c.id}">
+        <div class="def-num cat-${c.cat}">
+          <div class="v">${c.value}</div>
+          <div class="vsub">${c.vsub}</div>
+        </div>
+        <div class="def-body">
+          <h4>${c.title}</h4>
+          <div class="def-where">${c.where}</div>
+          <div class="def-row"><div class="lbl">Why</div><div class="val">${c.why}</div></div>
+          <div class="def-row"><div class="lbl">Range</div><div class="val">${c.range}</div></div>
+          <div class="def-row"><div class="lbl">Prod calibration</div><div class="val">${c.prod}</div></div>
+          <div class="def-row defense"><div class="lbl">If pushed</div><div class="val">${c.defense}</div></div>
+        </div>
+      </div>
+    `).join('');
+  }
+
+  document.querySelectorAll('.def-cat-pill').forEach(btn => {
+    btn.addEventListener('click', () => {
+      document.querySelectorAll('.def-cat-pill').forEach(b => {
+        b.classList.remove('active', 'all', 'weight', 'thresh', 'curve', 'window', 'agg', 'data', 'floor');
+      });
+      const cat = btn.getAttribute('data-cat');
+      btn.classList.add('active', cat);
+      renderChoices();
+    });
+  });
+  document.getElementById('def-search').addEventListener('input', renderChoices);
+  renderChoices();
+
+  // ========= INLINE INFO POPOVER =========
+  // Build a popover element appended to body
+  const pop = document.createElement('div');
+  pop.className = 'info-pop';
+  document.body.appendChild(pop);
+
+  function showPopover(triggerEl, choiceId) {
+    const c = choices.find(x => x.id === choiceId);
+    if (!c) return;
+    pop.innerHTML = `
+      <div class="pop-label">${c.where}</div>
+      <div class="pop-value">${c.value} · ${c.title}</div>
+      <div class="pop-text"><strong>Why:</strong> ${c.why}</div>
+      <div class="pop-text"><strong>Range:</strong> ${c.range}</div>
+      <div class="pop-text" style="margin-top:8px;color:#fdba74;"><em>"${c.defense}"</em></div>
+      <span class="pop-link" data-jump="${choiceId}">→ Open in Defending Choices tab</span>
+    `;
+    const r = triggerEl.getBoundingClientRect();
+    pop.style.top = (r.bottom + 6) + 'px';
+    pop.style.left = Math.max(8, Math.min(window.innerWidth - 380, r.left - 4)) + 'px';
+    pop.classList.add('open');
+  }
+  function hidePopover() { pop.classList.remove('open'); }
+
+  document.addEventListener('click', (e) => {
+    const trigger = e.target.closest('.info-icon');
+    if (trigger) {
+      e.stopPropagation();
+      const cid = trigger.getAttribute('data-choice');
+      if (pop.classList.contains('open') && pop.dataset.cid === cid) {
+        hidePopover();
+      } else {
+        showPopover(trigger, cid);
+        pop.dataset.cid = cid;
+      }
+      return;
+    }
+    const jump = e.target.closest('[data-jump]');
+    if (jump) {
+      const cid = jump.getAttribute('data-jump');
+      hidePopover();
+      // Switch to defending tab
+      document.querySelector('.tab-btn[data-tab="defending"]').click();
+      // Scroll to card
+      setTimeout(() => {
+        const card = document.getElementById(`card-${cid}`);
+        if (card) {
+          card.scrollIntoView({ behavior: 'smooth', block: 'center' });
+          card.style.transition = 'box-shadow 0.4s ease';
+          card.style.boxShadow = '0 0 0 3px var(--accent-2)';
+          setTimeout(() => card.style.boxShadow = '', 1800);
+        }
+      }, 80);
+      return;
+    }
+    if (!e.target.closest('.info-pop')) hidePopover();
+  });
+  window.addEventListener('scroll', hidePopover, true);
+  window.addEventListener('resize', hidePopover);
+
+  // ========= FLOW DIAGRAM PILLAR HIGHLIGHT =========
+  document.querySelectorAll('.flow-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const pillar = btn.getAttribute('data-pillar');
+      // Toggle button active state
+      document.querySelectorAll('.flow-btn').forEach(b => {
+        b.classList.remove('active', 'all', 'cr', 'um', 'dm', 'th');
+      });
+      btn.classList.add('active', pillar);
+
+      // Apply highlight to SVG nodes and links
+      const svg = document.querySelector('svg.flow-svg');
+      if (!svg) return;
+
+      const allLinks = svg.querySelectorAll('.flow-link');
+      const allNodes = svg.querySelectorAll('[data-pillar]');
+
+      if (pillar === 'all') {
+        allLinks.forEach(el => el.classList.remove('dim-link-faded'));
+        allNodes.forEach(el => el.classList.remove('dim-node-faded'));
+      } else {
+        allLinks.forEach(el => {
+          const lp = el.getAttribute('data-pillar');
+          if (lp === pillar || lp === 'all') {
+            el.classList.remove('dim-link-faded');
+          } else {
+            el.classList.add('dim-link-faded');
+          }
+        });
+        allNodes.forEach(el => {
+          const np = el.getAttribute('data-pillar');
+          if (np === pillar || np === 'all') {
+            el.classList.remove('dim-node-faded');
+          } else {
+            el.classList.add('dim-node-faded');
+          }
+        });
+      }
+    });
+  });
+</script>
+
+</body>
+</html>
