@@ -1,6 +1,6 @@
 # Metric v1: AVRI (refinement diff from v0)
 
-**Status:** Refinement spec. Documents what changed between `metric_v0.md` (the hypothesized design) and v1 (the inductively-refined design). v0 remains the canonical full reference; this file only records the deltas.
+**Status:** v1 is itself superseded by **v2.0** ([`metric_v2.md`](metric_v2.md)) which adds Realized Value (RV), calibration centralization, and pillar decomposition. AVRI scoring itself is unchanged from v1.3 → v2.0; v2 adds a layer above. This file documents the v0 → v1.3 diff (grace period, floor rule refinement, level guards). For the v2 additions, see `metric_v2.md`.
 
 **Trigger:** Phase 3.3 inspection findings, see `lessons_learned.md` #7, #10, and `inspection_findings.md`.
 
@@ -54,7 +54,57 @@ Rollup tables (`avri_csm`, `avri_region`) gained:
 
 **No change to scoring logic.** The new columns are diagnostic context, not metric inputs.
 
-### 4. (Other formula elements unchanged)
+### 4. Activation Grace Period (v1.3)
+
+**Trigger:** Q&A prep surfaced a real design flaw. v1.2 penalized newly-signed contracts via cold-start: a new contract instantly inflated CR's denominator, so AVRI dropped until consumption ramped. A CSM who landed $2M of new ARR could *lower* their dollar-weighted AVRI vs. a CSM who landed nothing. That's the wrong incentive shape for a comp metric in a hybrid bookings + consumption model.
+
+**v1.2 behavior:** A contract counts in CR/UM/DM the moment it's signed. New accounts score low for ~90 days regardless of how fast they ramp. Mid-year expansion contracts inflate the denominator immediately.
+
+**v1.3 behavior:** Each contract has an **activation status**. A contract is "activated" if **either** of the following has fired:
+- **Trigger A — usage threshold:** cumulative consumption since `start_date` ≥ 15% of `included_monthly_compute_credits`
+- **Trigger B — time fallback:** `as_of_date - start_date ≥ 90 days`
+
+Whichever fires first wins. **Only activated contracts contribute to CR's denominator**, to UM's baseline window, and to the activated-commit aggregations used in rollups. Accounts with **no activated contracts** appear in `avri_account` with the score columns set to NULL and an `all_contracts_in_grace = TRUE` flag — they're not penalized, but they're also not yet scored.
+
+**Why this is the right shape:**
+
+1. **Removes the cold-start penalty.** A brand new account doesn't drag a CSM's AVRI for 90 days while it ramps.
+2. **Rewards adoption velocity, not raw signing.** If consumption hits 15% in 30 days, the contract activates and starts contributing to AVRI 60 days early. If it never ramps, the contract activates by Trigger B at day 91 — and is then scored honestly (likely Red because consumption is still near zero).
+3. **Mid-year expansions handled cleanly.** When a CSM signs a second, larger contract, the new contract enters grace; the existing contract continues scoring normally. The account doesn't drop just because of the signature event.
+4. **Shelfware-from-day-one is still caught.** A contract that never sees usage activates by Trigger B at day 91 and joins AVRI at near-zero CR/UM/DM — exactly what the metric should report.
+5. **Stays a value-realization metric.** AVRI never directly rewards signing. It just stays *neutral* during a fair ramp window, then judges on outcomes.
+
+**Why not reward bookings explicitly (the rejected alternative):**
+
+The earlier proposal was a 5th pillar called Commercial Health that would directly award points for active contracts, multi-year commitments, and recent expansion. We rejected it because:
+- It risks recreating the TCV-trap (rewarding raw deal size by proxy).
+- It briefly masks shelfware-from-day-one accounts during the recency-bonus window.
+- It breaks the "4 pillars for 4 dimensions" elegance with no proportional gain.
+
+The Activation Grace Period achieves the same goal (don't penalize new bookings) with fewer side effects and a cleaner philosophical line.
+
+**Parameters and rationale:**
+
+| Parameter | Value | Why this value |
+|---|---|---|
+| Trigger A threshold | **15%** of monthly commit | ~4-5 days of full-rate usage in a month. Low enough that legitimate ramps will hit it within 30-60 days; high enough that token usage doesn't trigger early activation. |
+| Trigger B timeout | **90 days** | Matches our CR/UM/DM trailing windows. Aligns with quarterly business reviews. Simple to defend. |
+| Behavior on all-grace | NULL `avri_score`, `all_contracts_in_grace = TRUE` flag | Account is visible in the table for diagnostics, but not falsely scored as Red. |
+
+**Output schema additions to `avri_account`:**
+
+| Column | Type | Description |
+|---|---|---|
+| `total_contracts` | INT | Count of all currently-active (date-window) contracts for this account |
+| `activated_contracts` | INT | Count that have hit either Trigger A or B |
+| `grace_contracts` | INT | Count still in grace |
+| `all_contracts_in_grace` | BOOL | TRUE if no contracts have activated yet (then AVRI score columns are NULL) |
+| `has_grace_contract` | BOOL | TRUE if at least one contract is still in grace (for badge display) |
+
+**Q&A defense scripted:**
+> *"AVRI gives every signed contract a 90-day activation window. Inside that window, the contract doesn't penalize the rep's score. Outside it, the contract is judged on real adoption — fast ramp = early healthy contribution; slow ramp = honest red. This stays neutral on the act of signing and judges the customer-CSM pair on what they actually deliver in the ramp window. It's how AVRI's incentives align with the bookings-to-realization pipeline rather than bookings alone."*
+
+### 5. (Other formula elements unchanged)
 
 The four pillar weights (30/30/20/20), RAG thresholds (75/50), CR piecewise curve, DM linear, TH exponential decay, and floor rule (TH<30 → cap 50) all unchanged from v0. Inspection validated these.
 

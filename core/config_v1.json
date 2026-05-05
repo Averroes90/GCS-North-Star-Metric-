@@ -1,0 +1,100 @@
+{
+  "version": "v2.0",
+  "as_of_date": "2026-04-22",
+  "description": "Single source of truth for all calibratable parameters in the AVRI + RV scoring pipeline. Pipeline SQL and dashboard both consume this. v2.0 introduces RV (Realized Value).",
+
+  "avri": {
+    "weights": {
+      "cr": 0.30,
+      "um": 0.30,
+      "dm": 0.20,
+      "th": 0.20,
+      "_note": "Must sum to 1.0. Calibration in v3 candidate: regress against renewal outcomes; expected to vary by segment."
+    },
+    "floor_rule": {
+      "th_threshold": 30,
+      "avri_cap": 50,
+      "_note": "If TH < threshold, AVRI capped at avri_cap. Expresses non-substitutability — tech crisis can't be averaged away by consumption."
+    },
+    "color_thresholds": {
+      "green": 75,
+      "yellow": 50,
+      "_note": "AVRI >= green: Green. >= yellow and < green: Yellow. < yellow: Red. Onboarding (NULL AVRI) is its own color, see grace_period."
+    }
+  },
+
+  "cr_pillar": {
+    "_description": "Commit Realization. 90-day consumed credits / (3 * monthly_commit). Piecewise scoring curve.",
+    "util_curve": [
+      {"util_le": 0.10, "score": 0,   "_note": "Below activation floor — likely shelfware"},
+      {"util_le": 0.50, "score_max": 100, "interpolation": "linear", "_note": "Ramping zone — linear from 0 to 100"},
+      {"util_le": 1.10, "score": 100,                                "_note": "Sweet spot — full credit"},
+      {"util_le": 1.50, "score_max": 70,  "interpolation": "linear", "_note": "Healthy overage — gentle decay"},
+      {"util_le": 2.00, "score_max": 0,   "interpolation": "linear", "_note": "Excessive overage — capacity risk"},
+      {"util_le": null, "score": 0,                                  "_note": "Beyond 200% — hard zero"}
+    ]
+  },
+
+  "um_pillar": {
+    "_description": "Usage Momentum. 90-day avg / 365-day avg. Catches spike-and-drop. Level guard zeros UM if cumulative annual usage < 5% of commit (prevents tiny ratios from passing the test).",
+    "ratio_curve": [
+      {"ratio_le": 0.40, "score_max": 30, "interpolation": "linear",    "_note": "Severe decline"},
+      {"ratio_le": 0.70, "score_max": 70, "interpolation": "linear",    "_note": "Moderate decline"},
+      {"ratio_le": 0.95, "score_max": 100, "interpolation": "linear",   "_note": "Mild decline"},
+      {"ratio_le": null, "score": 100,                                  "_note": "Stable or growing"}
+    ],
+    "level_guard": {
+      "annual_pct_threshold": 0.05,
+      "_note": "If 365d cumulative < 5% of (12 * monthly_commit), UM forced to 0. Stops ratio from looking healthy when both numerator and denominator are tiny."
+    }
+  },
+
+  "dm_pillar": {
+    "_description": "Deployment Maturity. Active days in last 90 / 90.",
+    "window_days": 90
+  },
+
+  "th_pillar": {
+    "_description": "Technical Health. Exponentially decayed health color over a sliding window.",
+    "decay_rate": 0.95,
+    "window_days": 90,
+    "color_scores": {
+      "green":  100,
+      "yellow": 50,
+      "red":    0
+    }
+  },
+
+  "grace_period": {
+    "_description": "v1.3 Activation Grace. New contracts excluded from CR/UM denominators until they activate by usage OR by time.",
+    "enabled": true,
+    "usage_threshold_pct": 0.15,
+    "max_age_days": 90,
+    "_note": "Activates if cumulative usage >= 15% of monthly_commit OR contract age >= 90 days, whichever first."
+  },
+
+  "rv_formula": {
+    "_description": "Realized Value. Linear v1: RV = ARR * AVRI/100. Decomposes cleanly across pillars and aggregates.",
+    "type": "linear",
+    "exponent": 1.0,
+    "include_grace_arr": false,
+    "_v3_candidates": [
+      "Quadratic (ARR * (AVRI/100)^2) — convex; would penalize mediocrity disproportionately. Needs renewal data to defend.",
+      "Sigmoidal (logistic in AVRI) — empirical fit standard for churn modeling. Two parameters (k, inflection)."
+    ]
+  },
+
+  "naive_chs": {
+    "_description": "Approximation of Gainsight-style composite for comparison purposes only. Not used in production scoring.",
+    "weights": {
+      "arr_norm":          0.30,
+      "color_score":       0.30,
+      "util_score":        0.25,
+      "active_days_score": 0.15
+    },
+    "color_thresholds": {
+      "green": 75,
+      "yellow": 50
+    }
+  }
+}

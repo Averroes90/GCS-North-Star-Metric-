@@ -262,9 +262,54 @@ class TestPipelineOutputs:
     def test_avri_color_values(self, bq, fq):
         bad = count(bq, f"""
             SELECT COUNT(*) FROM {fq("avri_account")}
-            WHERE avri_color NOT IN ('green', 'yellow', 'red')
+            WHERE avri_color NOT IN ('green', 'yellow', 'red', 'onboarding')
         """)
         assert bad == 0, f"{bad} avri_account rows with invalid avri_color"
+
+    def test_grace_period_logic(self, bq, fq):
+        """v1.3: accounts with all contracts in grace must have NULL avri_score
+        and avri_color = 'onboarding'. Conversely, scored accounts must have
+        at least one activated contract."""
+        # All-grace accounts must be unscored
+        bad_unscored = count(bq, f"""
+            SELECT COUNT(*) FROM {fq("avri_account")}
+            WHERE all_contracts_in_grace = TRUE
+              AND (avri_score IS NOT NULL OR avri_color != 'onboarding')
+        """)
+        assert bad_unscored == 0, \
+            f"{bad_unscored} all-grace accounts incorrectly have a score or non-onboarding color"
+
+        # Scored accounts must have at least one activated contract
+        bad_scored = count(bq, f"""
+            SELECT COUNT(*) FROM {fq("avri_account")}
+            WHERE avri_score IS NOT NULL
+              AND (activated_contracts = 0 OR all_contracts_in_grace = TRUE)
+        """)
+        assert bad_scored == 0, \
+            f"{bad_scored} scored accounts have no activated contracts"
+
+        # Counts reconcile: total = activated + grace
+        bad_counts = count(bq, f"""
+            SELECT COUNT(*) FROM {fq("avri_account")}
+            WHERE total_contracts != activated_contracts + grace_contracts
+        """)
+        assert bad_counts == 0, \
+            f"{bad_counts} accounts where total_contracts != activated + grace"
+
+    def test_grace_period_present(self, bq, fq):
+        """v1.3: with contracts uniformly distributed across the past 18 months
+        and a 90-day timeout, we expect SOME contracts to currently be in grace
+        (recently signed, not yet activated). Sanity check that the grace
+        period is actually firing — if zero, something's wrong."""
+        grace_count = count(bq, f"""
+            SELECT COUNT(*) FROM {fq("avri_account")}
+            WHERE has_grace_contract = TRUE
+        """)
+        # Loose assertion: at least 5 accounts should have a grace contract.
+        # If zero, the activation logic is broken.
+        assert grace_count >= 5, \
+            f"Only {grace_count} accounts have a grace contract — activation logic may be broken"
+        print(f"\n   ✓ {grace_count} accounts have at least one in-grace contract")
 
     def test_avri_account_count_matches_scope(self, bq, fq):
         """avri_account should contain exactly the accounts with at least one
@@ -299,3 +344,72 @@ class TestPipelineOutputs:
         """)
         assert region_total == avri_count, \
             f"avri_region sums to {region_total} accounts but avri_account has {avri_count}"
+
+
+# =============================================================================
+# Section 5 — v2.0: Realized Value invariants
+# =============================================================================
+
+class TestRealizedValue:
+    """RV (linear) decomposition + grace exclusion + aggregation invariants."""
+
+    def test_rv_grace_excluded(self, bq, fq):
+        """All-grace (onboarding) accounts must have rv_dollars = 0."""
+        n = count(bq, f"""
+            SELECT COUNT(*) FROM {fq('avri_account')}
+            WHERE all_contracts_in_grace = TRUE AND rv_dollars != 0
+        """)
+        assert n == 0, f"{n} grace accounts have non-zero RV"
+
+    def test_rv_decomposition_adds_up(self, bq, fq):
+        """Per-account: pillar contributions + floor residual = (ARR - RV).
+
+        Tolerance: max($5, 0.1% of ARR). The pipeline rounds pillar scores
+        and avri_raw to 1 decimal place for human-readable display
+        (avri_account.sql ``with_avri`` CTE). The pandas reference
+        implementation in core/scoring.py preserves full precision and the
+        decomposition there is exact (verified in core/test_scoring.py).
+        The pipeline's per-account drift is bounded by:
+            ARR × 0.05 (max raw-AVRI rounding) / 100 ≈ ARR × 0.0005
+        Which is well within 0.1% of ARR.
+        """
+        bad = count(bq, f"""
+            SELECT COUNT(*) FROM {fq('avri_account')}
+            WHERE all_contracts_in_grace = FALSE
+              AND avri_score IS NOT NULL
+              AND ABS(
+                (arr_dollars - rv_dollars) -
+                (unrealized_cr_dollars + unrealized_um_dollars +
+                 unrealized_dm_dollars + unrealized_th_dollars +
+                 unrealized_floor_dollars)
+              ) > GREATEST(5.0, arr_dollars * 0.001)
+        """)
+        assert bad == 0, (
+            f"{bad} accounts have decomposition mismatch > max($5, 0.1% of ARR). "
+            f"This indicates a structural error, not just rounding drift."
+        )
+
+    def test_rv_aggregation_csm(self, bq, fq):
+        """Σ avri_csm.book_rv_dollars equals Σ avri_account.rv_dollars."""
+        acct_total = count(bq, f"SELECT ROUND(SUM(rv_dollars), 0) FROM {fq('avri_account')}")
+        csm_total  = count(bq, f"SELECT ROUND(SUM(book_rv_dollars), 0) FROM {fq('avri_csm')}")
+        assert abs(acct_total - csm_total) < 2, \
+            f"CSM rollup RV {csm_total} != account RV {acct_total}"
+
+    def test_rv_aggregation_region(self, bq, fq):
+        """Σ avri_region.book_rv_dollars equals Σ avri_account.rv_dollars."""
+        acct_total = count(bq, f"SELECT ROUND(SUM(rv_dollars), 0) FROM {fq('avri_account')}")
+        region_tot = count(bq, f"SELECT ROUND(SUM(book_rv_dollars), 0) FROM {fq('avri_region')}")
+        assert abs(acct_total - region_tot) < 2, \
+            f"Region rollup RV {region_tot} != account RV {acct_total}"
+
+    def test_realization_rate_in_range(self, bq, fq):
+        """Org-wide realization rate is in a sane band (0.5 to 0.95)."""
+        rows = bq.query(f"""
+            SELECT SAFE_DIVIDE(
+              SUM(rv_dollars),
+              SUM(IF(avri_score IS NOT NULL, arr_dollars, 0))
+            ) AS rate FROM {fq('avri_account')}
+        """).result()
+        rate = list(rows)[0].rate
+        assert 0.5 <= rate <= 0.95, f"Realization rate {rate:.3f} outside expected band"

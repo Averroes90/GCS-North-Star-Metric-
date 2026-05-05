@@ -3,3 +3,5 @@ db-dtypes==1.2.0
 pandas==2.2.2
 pytest==8.2.0
 tabulate==0.9.0
+matplotlib==3.8.4   # v2.0 — used by charts/render_v2_charts.py to (re)generate static lobby/deck PNGs
+pyarrow==16.1.0     # v2.0 — read parquet files in core/build_facts.py

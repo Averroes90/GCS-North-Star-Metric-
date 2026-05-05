@@ -29,7 +29,7 @@ from google.cloud import bigquery
 PROJECT = "panw-gcs-northstar"
 DATASET = "gcs_north_star"
 
-RAG_COLORS = {"green": "#059669", "yellow": "#d97706", "red": "#dc2626"}
+RAG_COLORS = {"green": "#059669", "yellow": "#d97706", "red": "#dc2626", "onboarding": "#6366f1"}
 PILLAR_COLORS = {
     "CR": "#2563eb",  # commit realization — blue
     "UM": "#ea580c",  # usage momentum — orange
@@ -97,8 +97,13 @@ with st.sidebar:
 
 
 # Filter clauses for SQL
-def base_filters(account_alias: str = "a") -> str:
-    """Return WHERE-clause fragments to apply global filters at the account level."""
+def base_filters(account_alias: str = "a", apply_cold_start: bool = True) -> str:
+    """Return WHERE-clause fragments to apply global filters at the account level.
+
+    Pass apply_cold_start=False on tabs where the cold-start filter would
+    distort the analysis (e.g., metric comparisons should be apples-to-apples
+    across all in-scope accounts, not filtered to mature ones).
+    """
     parts = []
     if region_filter:
         regions = ", ".join(f"'{r}'" for r in region_filter)
@@ -106,7 +111,7 @@ def base_filters(account_alias: str = "a") -> str:
     if segment_filter:
         segments = ", ".join(f"'{s}'" for s in segment_filter)
         parts.append(f"r.segment IN ({segments})")
-    if exclude_cold_start:
+    if apply_cold_start and exclude_cold_start:
         parts.append(f"{account_alias}.cold_start_flag = FALSE")
     return " AND ".join(parts) if parts else "TRUE"
 
@@ -115,15 +120,408 @@ def base_filters(account_alias: str = "a") -> str:
 # Tabs
 # ---------------------------------------------------------------------------
 
-st.title("GCS North Star — AVRI Dashboard")
-st.caption("Customer Value Realization, measured at account · CSM · region grain.")
+st.title("GCS North Star — AVRI + RV Dashboard")
+st.caption("v2.0 — AVRI scores quality of execution; RV (Realized Value) composes ARR with AVRI to surface dollars at stake.")
 
-tab_overview, tab_csm, tab_account, tab_renewals = st.tabs([
+tab_rv, tab_overview, tab_csm, tab_account, tab_renewals, tab_calib = st.tabs([
+    "📈 Realized Value",
     "📊 Executive Overview",
     "👤 CSM Detail",
     "🔍 Account Drill-down",
     "🚨 At-Risk Renewals",
+    "⚙️ Calibration",
 ])
+# AVRI vs CHS view removed from the main tab row (v2.0). The static crosstab
+# matrix on slide 3 of the deck and the AVRI vs CHS Stories tab in the lobby
+# carry that narrative; the interactive dashboard version was redundant.
+# To restore: re-add "🔄 AVRI vs CHS" to the tabs list above and uncomment the
+# `with tab_crosstab:` block below.
+tab_crosstab = None
+
+
+# ===========================================================================
+# TAB 0 — Realized Value (NEW v2.0 landing tab)
+# ===========================================================================
+with tab_rv:
+    st.subheader("Where is ARR being realized? Where is it leaking?")
+    st.caption("Linear v1: RV = ARR × AVRI/100. Onboarding accounts contribute zero. "
+               "Headline below; pillar decomposition heatmap underneath.")
+
+    # Drill-down state lives in session_state and is driven by the dropdowns
+    # below the heatmap. The heatmap is purely visual; the matching cell
+    # gets a highlight ring when the dropdowns are set to a specific
+    # group × pillar.
+
+    # Headline numbers
+    rv_headline_sql = f"""
+    SELECT
+      COUNT(*) AS n_total,
+      COUNTIF(a.avri_score IS NOT NULL) AS n_scored,
+      COUNTIF(a.avri_score IS NULL)     AS n_grace,
+      ROUND(SUM(a.arr_dollars), 2) AS total_arr,
+      ROUND(SUM(IF(a.avri_score IS NOT NULL, a.arr_dollars, 0)), 2) AS scored_arr,
+      ROUND(SUM(a.rv_dollars),  2) AS total_rv,
+      ROUND(SUM(IF(a.avri_score IS NOT NULL, a.arr_dollars, 0)) - SUM(a.rv_dollars), 2) AS unrealized,
+      ROUND(SAFE_DIVIDE(SUM(a.rv_dollars),
+                        SUM(IF(a.avri_score IS NOT NULL, a.arr_dollars, 0))), 4) AS rate
+    FROM {fq("avri_account")} a
+    JOIN {fq("csm_rep")} r ON a.rep_id = r.csm_id
+    WHERE {base_filters(apply_cold_start=False)}
+    """
+    rv_h = query(rv_headline_sql).iloc[0]
+
+    col1, col2, col3, col4 = st.columns(4)
+    col1.metric("Total ARR",       f"${rv_h['total_arr']/1e6:.1f}M",
+                f"{int(rv_h['n_total'])} accounts")
+    col2.metric("Realized $",      f"${rv_h['total_rv']/1e6:.1f}M",
+                f"{rv_h['rate']*100:.1f}% realization", delta_color="off")
+    col3.metric("Unrealized $",    f"${rv_h['unrealized']/1e6:.1f}M",
+                "the renewal-risk pile", delta_color="inverse")
+    col4.metric("In grace",        f"{int(rv_h['n_grace'])} accts",
+                "deferred from scoring", delta_color="off")
+
+    st.divider()
+
+    # Pillar decomposition heatmap — group-by selector + sidebar-filter aware
+    st.markdown("### Where the $ is being lost — by pillar")
+    col_left, col_right = st.columns([1, 3])
+    with col_left:
+        group_by = st.selectbox(
+            "Group rows by",
+            options=["Region", "Segment", "Industry", "CSM (top 15)"],
+            index=0,
+            key="rv_group_by",
+        )
+    with col_right:
+        st.caption("Cell shows $ unrealized to that pillar in that group, plus % of group's "
+                   "scored ARR. Scan down a column to spot which group is weakest at that pillar. "
+                   "Sidebar filters apply.")
+
+    GROUP_COL = {
+        "Region":        "r.region",
+        "Segment":       "r.segment",
+        "Industry":      "a.industry",
+        "CSM (top 15)":  "r.csm_id",
+    }[group_by]
+
+    limit_clause = "LIMIT 15" if group_by == "CSM (top 15)" else ""
+
+    heatmap_sql = f"""
+    SELECT
+      {GROUP_COL} AS grp,
+      COUNT(*) AS n_accts,
+      ROUND(SUM(a.arr_dollars), 0)            AS book_arr,
+      ROUND(SUM(IF(a.avri_score IS NOT NULL, a.arr_dollars, 0)), 0) AS scored_arr,
+      ROUND(SUM(a.rv_dollars), 0)             AS book_rv,
+      ROUND(SUM(COALESCE(a.unrealized_cr_dollars,    0)), 0) AS u_cr,
+      ROUND(SUM(COALESCE(a.unrealized_um_dollars,    0)), 0) AS u_um,
+      ROUND(SUM(COALESCE(a.unrealized_dm_dollars,    0)), 0) AS u_dm,
+      ROUND(SUM(COALESCE(a.unrealized_th_dollars,    0)), 0) AS u_th,
+      ROUND(SUM(COALESCE(a.unrealized_floor_dollars, 0)), 0) AS u_floor
+    FROM {fq("avri_account")} a
+    JOIN {fq("csm_rep")} r ON a.rep_id = r.csm_id
+    WHERE {base_filters(apply_cold_start=False)}
+    GROUP BY grp
+    ORDER BY book_rv DESC
+    {limit_clause}
+    """
+    rh = query(heatmap_sql)
+
+    if rh.empty:
+        st.info("No accounts in scope after sidebar filters.", icon="ℹ️")
+    else:
+        # Render heatmap as an HTML table — guaranteed visual control over
+        # text color and background color. Plotly's annotation layer was not
+        # honoring font.color in this Streamlit version, hence this fallback.
+        pillar_short  = ["CR", "UM", "DM", "TH", "Floor"]
+        pillar_full   = ["Commit<br>Realization",
+                         "Usage<br>Momentum",
+                         "Deployment<br>Maturity",
+                         "Technical<br>Health",
+                         "Floor<br>rule residual"]
+        pillar_keys   = ["u_cr", "u_um", "u_dm", "u_th", "u_floor"]
+
+        groups = rh["grp"].astype(str).tolist()
+
+        # Compute per-cell percentages and find the global max for color scaling
+        cell_pct = []
+        for _, row in rh.iterrows():
+            scored = max(row["scored_arr"], 1)
+            cell_pct.append([row[k] / scored * 100 for k in pillar_keys])
+        max_pct = max(max(r) for r in cell_pct) if cell_pct else 1.0
+        max_pct = max(max_pct, 4.0)
+
+        def cell_color(pct: float) -> tuple[str, str]:
+            """Return (background_hex, text_hex) for a given pct value."""
+            t = min(pct / max_pct, 1.0)
+            # Interpolate between cream (#ffedd5) and dark amber (#7c2d12)
+            stops = [(0.00, (255, 237, 213)),  # cream
+                     (0.35, (253, 186, 116)),  # tan
+                     (0.70, (234, 88,  12)),   # bright orange
+                     (1.00, (124, 45,  18))]   # dark amber
+            for i in range(len(stops) - 1):
+                t0, c0 = stops[i]
+                t1, c1 = stops[i + 1]
+                if t <= t1:
+                    f = (t - t0) / (t1 - t0) if t1 > t0 else 0
+                    r = int(c0[0] + f * (c1[0] - c0[0]))
+                    g = int(c0[1] + f * (c1[1] - c0[1]))
+                    b = int(c0[2] + f * (c1[2] - c0[2]))
+                    bg = f"#{r:02x}{g:02x}{b:02x}"
+                    # Text color: white if cell is dark (luminance threshold),
+                    # else near-black for max contrast on light cells
+                    luminance = 0.299*r + 0.587*g + 0.114*b
+                    text = "#ffffff" if luminance < 140 else "#0a0a0a"
+                    return bg, text
+            return "#ffffff", "#0a0a0a"
+
+        # Currently-selected cell (from previous click or selectbox)
+        sel_group_now  = st.session_state.get("rv_drill_group")
+        sel_pillar_now = st.session_state.get("rv_drill_pillar")
+        sel_gb_now     = st.session_state.get("rv_drill_group_by")
+        # Only apply highlight if drill matches current group_by (otherwise the drill is stale)
+        if sel_gb_now != group_by:
+            sel_group_now = None
+            sel_pillar_now = None
+
+        HIGHLIGHT_RING = "#1d4ed8"   # vivid blue for selected cell
+
+        # Build HTML table — purely visual. Drill is driven by dropdowns below.
+        html = ['<style>',
+                '.rv-heatmap { width: 100%; border-collapse: separate; border-spacing: 4px; '
+                '              font-family: -apple-system, "Segoe UI", system-ui, sans-serif; }',
+                '.rv-heatmap th { padding: 10px 8px; font-size: 11px; font-weight: 700; '
+                '                 color: #475569; text-transform: uppercase; letter-spacing: 0.04em; '
+                '                 background: #f8fafc; border-radius: 6px; text-align: center; }',
+                '.rv-heatmap td.rv-row-label { padding: 10px 12px; background: #f1f5f9; '
+                '                              border-radius: 6px; font-weight: 700; color: #0f172a; '
+                '                              font-size: 13px; }',
+                '.rv-heatmap td.rv-row-label .rv-row-sub { display: block; font-weight: 400; '
+                '                                          color: #64748b; font-size: 11px; '
+                '                                          margin-top: 2px; }',
+                '.rv-heatmap td.rv-cell { padding: 14px 8px; text-align: center; border-radius: 6px; '
+                '                         min-width: 100px; }',
+                '.rv-heatmap td.rv-cell .rv-d { font-size: 16px; font-weight: 700; }',
+                '.rv-heatmap td.rv-cell .rv-p { font-size: 12px; font-weight: 500; opacity: 0.85; '
+                '                                margin-top: 2px; }',
+                f'.rv-heatmap td.rv-selected {{ outline: 3px solid {HIGHLIGHT_RING}; '
+                f'                              outline-offset: -1px; '
+                f'                              box-shadow: 0 0 0 2px white, 0 4px 12px rgba(29,78,216,0.35); }}',
+                '</style>',
+                '<table class="rv-heatmap">']
+        # Header row
+        html.append('<tr><th></th>')
+        for i, p in enumerate(pillar_short):
+            html.append(f'<th>{p}<br><span style="font-size:9px;font-weight:400;opacity:0.7">{pillar_full[i]}</span></th>')
+        html.append('</tr>')
+        # Data rows
+        for i, group_name in enumerate(groups):
+            arr_m = rh.iloc[i]["book_arr"] / 1e6
+            n_a = int(rh.iloc[i]["n_accts"])
+            html.append('<tr>')
+            html.append(f'<td class="rv-row-label">{group_name}'
+                        f'<span class="rv-row-sub">${arr_m:.0f}M ARR · {n_a} accts</span></td>')
+            for j, k in enumerate(pillar_keys):
+                v = rh.iloc[i][k]
+                pct = cell_pct[i][j]
+                bg, txt = cell_color(pct)
+                is_selected = (group_name == sel_group_now) and (pillar_short[j] == sel_pillar_now)
+                cell_class = "rv-cell rv-selected" if is_selected else "rv-cell"
+                html.append(f'<td class="{cell_class}" style="background:{bg};color:{txt};">'
+                            f'<div class="rv-d">${v/1e6:.1f}M</div>'
+                            f'<div class="rv-p">{pct:.1f}%</div></td>')
+            html.append('</tr>')
+        html.append('</table>')
+        st.markdown("".join(html), unsafe_allow_html=True)
+
+        st.write("")  # spacer
+
+        # Drill-down dropdowns — reflect session state (set by clicks or by manual choice)
+        st.markdown(
+            "**🔎 Drill into a cell** — click any cell above, or use the dropdowns. "
+            "Clicking will highlight the cell and populate these selectors."
+        )
+        dcol1, dcol2, dcol3 = st.columns([2, 2, 1])
+        # Compute defaults from session state
+        _gp_default = st.session_state.get("rv_drill_group_pick") or st.session_state.get("rv_drill_group")
+        _pl_default = st.session_state.get("rv_drill_pillar_pick") or st.session_state.get("rv_drill_pillar")
+        with dcol1:
+            drill_group_options = ["(no drill — show top-15 globally)"] + groups
+            _idx = drill_group_options.index(_gp_default) if _gp_default in drill_group_options else 0
+            sel_group = st.selectbox(f"{group_by} →", drill_group_options, index=_idx,
+                                     key="rv_drill_group_pick")
+        with dcol2:
+            drill_pillar_options = ["(any)"] + pillar_short
+            _idx = drill_pillar_options.index(_pl_default) if _pl_default in drill_pillar_options else 0
+            sel_pillar = st.selectbox("Pillar →", drill_pillar_options, index=_idx,
+                                      key="rv_drill_pillar_pick")
+        with dcol3:
+            st.write("")
+            if st.button("Clear", key="rv_drill_clear"):
+                for k in ("rv_drill_group", "rv_drill_pillar", "rv_drill_group_by",
+                          "rv_drill_group_pick", "rv_drill_pillar_pick"):
+                    st.session_state.pop(k, None)
+                st.query_params.clear()
+                st.rerun()
+
+        is_drilled = sel_group != "(no drill — show top-15 globally)" and sel_pillar != "(any)"
+        if is_drilled:
+            st.session_state["rv_drill_group"]    = sel_group
+            st.session_state["rv_drill_pillar"]   = sel_pillar
+            st.session_state["rv_drill_group_by"] = group_by
+        else:
+            for k in ("rv_drill_group", "rv_drill_pillar", "rv_drill_group_by"):
+                st.session_state.pop(k, None)
+
+    st.divider()
+
+    # Top renewal landmines — drilled by heatmap click if any
+    drill_group   = st.session_state.get("rv_drill_group")
+    drill_pillar  = st.session_state.get("rv_drill_pillar")
+    drill_groupby = st.session_state.get("rv_drill_group_by")
+
+    if drill_group and drill_pillar:
+        st.markdown(f"### Renewal landmines — **{drill_group} × {drill_pillar} loss**")
+        st.caption(f"Drilled view: top accounts in {drill_group} sorted by their {drill_pillar}-pillar "
+                   f"contribution to unrealized $. Click the heatmap again to clear and return to the "
+                   f"top-15 global landmines.")
+    else:
+        st.markdown("### Top 15 renewal landmines (largest single-account unrealized $)")
+        st.caption("Where executive attention should go first. Sorted by unrealized $ descending. "
+                   "Click any heatmap cell above to drill into a specific group × pillar.")
+
+    # Build SQL based on whether we're drilled or not
+    pillar_to_col = {
+        "CR":    "a.unrealized_cr_dollars",
+        "UM":    "a.unrealized_um_dollars",
+        "DM":    "a.unrealized_dm_dollars",
+        "TH":    "a.unrealized_th_dollars",
+        "Floor": "a.unrealized_floor_dollars",
+    }
+    groupby_col_map = {
+        "Region":       "r.region",
+        "Segment":      "r.segment",
+        "Industry":     "a.industry",
+        "CSM (top 15)": "r.csm_id",
+    }
+
+    extra_where = ""
+    sort_col = "(a.arr_dollars - a.rv_dollars)"
+    if drill_group and drill_pillar and drill_groupby:
+        gb = groupby_col_map.get(drill_groupby, "r.region")
+        # Escape single quotes in the group value
+        safe_group = drill_group.replace("'", "''")
+        extra_where = f" AND {gb} = '{safe_group}'"
+        sort_col = pillar_to_col.get(drill_pillar, sort_col)
+
+    landmines_sql = f"""
+    SELECT
+      a.account_id, a.industry,
+      ROUND(a.arr_dollars, 0) AS arr_dollars,
+      ROUND(a.rv_dollars, 0)  AS rv_dollars,
+      ROUND(a.arr_dollars - a.rv_dollars, 0) AS unrealized,
+      ROUND(COALESCE(a.unrealized_cr_dollars,    0), 0) AS u_cr,
+      ROUND(COALESCE(a.unrealized_um_dollars,    0), 0) AS u_um,
+      ROUND(COALESCE(a.unrealized_dm_dollars,    0), 0) AS u_dm,
+      ROUND(COALESCE(a.unrealized_th_dollars,    0), 0) AS u_th,
+      ROUND(COALESCE(a.unrealized_floor_dollars, 0), 0) AS u_floor,
+      ROUND(a.avri_score, 1)  AS avri_score,
+      a.avri_color, a.floor_rule_triggered,
+      a.rep_id, r.region, r.segment
+    FROM {fq("avri_account")} a
+    JOIN {fq("csm_rep")} r ON a.rep_id = r.csm_id
+    WHERE a.avri_score IS NOT NULL
+      AND a.avri_color != 'green'
+      AND {base_filters(apply_cold_start=False)}
+      {extra_where}
+    ORDER BY {sort_col} DESC
+    LIMIT 15
+    """
+    lm = query(landmines_sql)
+    if not lm.empty:
+        # Pick which pillar contribution column to highlight
+        pillar_col_short = {
+            "CR": "u_cr", "UM": "u_um", "DM": "u_dm", "TH": "u_th", "Floor": "u_floor",
+        }.get(drill_pillar)
+
+        display_cols = ["account_id", "industry", "region", "segment",
+                        "arr_dollars", "rv_dollars", "unrealized"]
+        col_config = {
+            "arr_dollars":  st.column_config.NumberColumn("ARR", format="$%d"),
+            "rv_dollars":   st.column_config.NumberColumn("RV", format="$%d"),
+            "unrealized":   st.column_config.NumberColumn("Unrealized $", format="$%d"),
+            "avri_score":   st.column_config.ProgressColumn("AVRI", min_value=0, max_value=100, format="%.1f"),
+        }
+        if pillar_col_short:
+            display_cols.append(pillar_col_short)
+            col_config[pillar_col_short] = st.column_config.NumberColumn(
+                f"{drill_pillar} loss $", format="$%d"
+            )
+        display_cols += ["avri_score", "avri_color", "floor_rule_triggered"]
+
+        st.dataframe(
+            lm[display_cols],
+            use_container_width=True,
+            hide_index=True,
+            column_config=col_config,
+        )
+    else:
+        st.info("No landmines in this slice.", icon="ℹ️")
+
+    st.info(
+        "ℹ️ Sidebar filters (region/segment) apply. The cold-start exclusion is overridden on this tab "
+        "so the matrix shows the full in-scope population. Realization rate denominator excludes "
+        "in-grace accounts (their RV is 0 by construction).",
+        icon="ℹ️",
+    )
+
+
+# ===========================================================================
+# TAB X — Calibration sandbox (read-only display in this build)
+# ===========================================================================
+with tab_calib:
+    st.subheader("Calibration sandbox")
+    st.warning(
+        "**Calibration sandbox.** Production runs locked defaults from `core/config_v1.json`. "
+        "The values below are surfaced for transparency — every weight, threshold, and curve "
+        "breakpoint is named and located in one file. In a future build, this tab adds live sliders.",
+        icon="⚙️",
+    )
+
+    try:
+        import json as _json
+        from pathlib import Path as _Path
+        cfg_path = _Path(__file__).resolve().parent.parent / "core" / "config_v1.json"
+        with open(cfg_path) as _f:
+            _cfg = _json.load(_f)
+
+        st.markdown(f"**Config version:** `{_cfg.get('version', '?')}` · "
+                    f"as-of `{_cfg.get('as_of_date', '?')}`")
+
+        col_a, col_b = st.columns(2)
+        with col_a:
+            st.markdown("### AVRI weights")
+            w = _cfg["avri"]["weights"]
+            st.write({k: v for k, v in w.items() if not k.startswith("_")})
+            st.markdown("### Floor rule")
+            st.write(_cfg["avri"]["floor_rule"])
+            st.markdown("### Color thresholds")
+            st.write(_cfg["avri"]["color_thresholds"])
+            st.markdown("### Grace period (v1.3)")
+            st.write({k: v for k, v in _cfg["grace_period"].items() if not k.startswith("_")})
+
+        with col_b:
+            st.markdown("### RV formula")
+            st.write({k: v for k, v in _cfg["rv_formula"].items() if not k.startswith("_")})
+            st.markdown("### TH pillar")
+            st.write({k: v for k, v in _cfg["th_pillar"].items() if not k.startswith("_")})
+            st.markdown("### DM pillar")
+            st.write(_cfg["dm_pillar"])
+
+        with st.expander("Full config JSON"):
+            st.json(_cfg)
+    except Exception as e:
+        st.error(f"Could not load config: {e}")
 
 
 # ===========================================================================
@@ -356,6 +754,255 @@ with tab_overview:
             bars_html += stacked_bar_html(metric_name, r["green"], r["yellow"], r["red"])
 
     st.markdown(bars_html, unsafe_allow_html=True)
+
+
+# ===========================================================================
+# TAB — AVRI vs CHS Crosstab (DISABLED in v2.0 — see tab list above)
+# ===========================================================================
+with tab_csm:  # placeholder no-op context; this entire block is unreachable
+  if False:
+    st.subheader("Where do AVRI and naive CHS disagree?")
+    st.caption("Each cell shows accounts that fall in that AVRI×CHS combination. Diagonal cells = agreement. "
+               "Off-diagonal cells reveal where AVRI's decisions differ — and why those differences matter.")
+    st.info(
+        "ℹ️ This tab **overrides the sidebar's 'exclude cold-start' filter** so the matrix shows all in-scope "
+        "accounts (matches the lobby HTML's static snapshot). Region and segment filters still apply. "
+        "Cold-start filtering is for CSM/rep-performance views, not for metric comparison.",
+        icon="ℹ️",
+    )
+
+    # ---- Compute the crosstab ----
+    crosstab_sql = f"""
+    WITH joined AS (
+      SELECT
+        a.account_id,
+        a.avri_color,
+        CASE
+          WHEN e.naive_chs_score >= 75 THEN 'green'
+          WHEN e.naive_chs_score >= 50 THEN 'yellow'
+          ELSE 'red'
+        END AS chs_color,
+        a.arr_dollars
+      FROM {fq("avri_account")} a
+      JOIN {fq("metrics_existing_account")} e USING (account_id)
+      JOIN {fq("csm_rep")} r ON a.rep_id = r.csm_id
+      WHERE {base_filters(apply_cold_start=False)}
+    )
+    SELECT
+      avri_color,
+      chs_color,
+      COUNT(*) AS n,
+      ROUND(SUM(arr_dollars) / 1e6, 2) AS total_arr_m
+    FROM joined
+    GROUP BY avri_color, chs_color
+    """
+    cx = query(crosstab_sql)
+    cx["n"] = cx["n"].fillna(0).astype(int)
+
+    # ---- Build pivoted matrix for HTML render ----
+    chs_order = ["green", "yellow", "red"]
+    avri_order = ["green", "yellow", "red", "onboarding"]
+    n_pivot = (
+        cx.pivot_table(index="avri_color", columns="chs_color", values="n", fill_value=0, aggfunc="sum")
+        .reindex(index=avri_order, columns=chs_order, fill_value=0)
+    )
+    arr_pivot = (
+        cx.pivot_table(index="avri_color", columns="chs_color", values="total_arr_m", fill_value=0, aggfunc="sum")
+        .reindex(index=avri_order, columns=chs_order, fill_value=0)
+    )
+
+    # Cell narratives — the reason each disagreement exists
+    NARRATIVES = {
+        ("green", "green"):       ("AGREEMENT", "Both metrics see this account as healthy. No action needed."),
+        ("yellow", "yellow"):     ("AGREEMENT", "Both flag for watch. CSM intervention recommended."),
+        ("red", "red"):           ("AGREEMENT", "Both escalate. Active renewal risk."),
+        ("green", "yellow"):      ("AVRI rescues", "Naive CHS over-penalizes accounts with one bad week. AVRI's decay-weighted TH gets the trend right."),
+        ("green", "red"):         ("AVRI strongly disagrees", "Usually consistent overage. Naive CHS treats high utilization as failure; AVRI rewards it as healthy expansion."),
+        ("yellow", "green"):      ("AVRI flags watch", "AVRI catches early signals naive CHS misses — borderline shelfware, momentum decay, or floor-rule trigger."),
+        ("yellow", "red"):        ("AVRI moderates", "Naive CHS over-escalates; AVRI sees enough positive signals (consumption, breadth, momentum) to keep it in watch zone, not red."),
+        ("red", "green"):         ("AVRI catches hidden risk", "The strongest deck story. Usually shelfware where health_color is still green from earlier in the year but consumption has collapsed. CHS is fooled; AVRI sees through."),
+        ("red", "yellow"):        ("AVRI is more decisive", "CHS hedges; AVRI escalates. Usually accounts where multiple pillars are weak in addition to a yellow color signal."),
+        ("onboarding", "green"):  ("Out of scope (v1.3)", "Newly-signed contract still in 90-day grace. Not yet scored. Naive CHS still rates it (largely on the ARR component)."),
+        ("onboarding", "yellow"): ("Out of scope (v1.3)", "Newly-signed contract still in grace; CHS rates it ambiguously."),
+        ("onboarding", "red"):    ("Out of scope (v1.3)", "Newly-signed contract still in grace; CHS may flag based on ARR component or low utilization, but AVRI defers judgment."),
+    }
+
+    # ---- Render the crosstab as styled HTML ----
+    cell_color_for = {
+        "green":       RAG_COLORS["green"],
+        "yellow":      RAG_COLORS["yellow"],
+        "red":         RAG_COLORS["red"],
+        "onboarding":  RAG_COLORS["onboarding"],
+    }
+    diagonal_pairs = {("green", "green"), ("yellow", "yellow"), ("red", "red")}
+
+    def cell_style(avri_c, chs_c):
+        n = int(n_pivot.loc[avri_c, chs_c])
+        is_diag = (avri_c, chs_c) in diagonal_pairs
+        is_zero = n == 0
+        # Diagonal = neutral light gray (agreement). Off-diagonal = orange-tinted (interesting).
+        if is_zero:
+            bg = "#F8FAFC"
+            border = "#E2E8F0"
+        elif is_diag:
+            bg = "#F1F5F9"
+            border = "#CBD5E1"
+        else:
+            # Heatmap: lighter for small disagreements, darker for big
+            intensity = min(n / 100.0, 1.0)
+            r, g, b = 254, 215, 170  # warm orange tint
+            bg = f"#{r:02x}{g:02x}{b:02x}"
+            border = "#EA580C" if n >= 20 else "#FDBA74"
+        return bg, border
+
+    html = ['<table style="border-collapse: separate; border-spacing: 4px; width: 100%; max-width: 800px;">']
+    # Header row
+    html.append('<tr><th style="padding: 8px;"></th>')
+    for chs_c in chs_order:
+        html.append(
+            f'<th style="padding: 10px; background: {cell_color_for[chs_c]}; '
+            f'color: white; font-size: 12px; text-transform: uppercase; letter-spacing: 0.05em; '
+            f'border-radius: 6px;">CHS {chs_c}</th>'
+        )
+    html.append("</tr>")
+    # Data rows
+    for avri_c in avri_order:
+        row_total = int(n_pivot.loc[avri_c].sum())
+        if row_total == 0:
+            continue
+        html.append("<tr>")
+        html.append(
+            f'<th style="padding: 10px; background: {cell_color_for[avri_c]}; '
+            f'color: white; font-size: 12px; text-transform: uppercase; letter-spacing: 0.05em; '
+            f'border-radius: 6px; text-align: right;">AVRI {avri_c}</th>'
+        )
+        for chs_c in chs_order:
+            n = int(n_pivot.loc[avri_c, chs_c])
+            arr_m = float(arr_pivot.loc[avri_c, chs_c])
+            bg, border = cell_style(avri_c, chs_c)
+            label, _ = NARRATIVES.get((avri_c, chs_c), ("", ""))
+            label_html = (
+                f'<div style="font-size:9.5px; color:#64748b; text-transform:uppercase; '
+                f'letter-spacing: 0.04em; margin-top: 4px;">{label}</div>' if label and not (avri_c, chs_c) in diagonal_pairs else ""
+            )
+            html.append(
+                f'<td style="background: {bg}; border: 1.5px solid {border}; '
+                f'padding: 14px 12px; text-align: center; border-radius: 6px;">'
+                f'<div style="font-size: 24px; font-weight: 700; color: #0f172a;">{n}</div>'
+                f'<div style="font-size: 11px; color: #64748b;">${arr_m:.1f}M ARR</div>'
+                f'{label_html}'
+                f"</td>"
+            )
+        html.append("</tr>")
+    html.append("</table>")
+    st.markdown("".join(html), unsafe_allow_html=True)
+
+    st.write("")
+    st.markdown(
+        "**Reading the matrix:** rows are AVRI's verdict; columns are naive CHS's verdict. "
+        "**Diagonal cells** (gray-ish) are where the two metrics agree. **Off-diagonal cells** "
+        "(orange-tinted) are where they disagree — that's the analytically interesting territory."
+    )
+
+    st.divider()
+
+    # ---- Drill-down: pick a cell, see the accounts ----
+    st.markdown("### Drill into a specific cell")
+    st.caption("Pick an AVRI verdict and a CHS verdict. The table below shows accounts in that cell — "
+               "their pillar scores, both metric scores, and key signals — so you can see exactly why they disagree.")
+
+    col_a, col_b, col_c = st.columns([1, 1, 2])
+    with col_a:
+        sel_avri = st.selectbox(
+            "AVRI color",
+            options=[c for c in avri_order if int(n_pivot.loc[c].sum()) > 0],
+            index=0,
+        )
+    with col_b:
+        sel_chs = st.selectbox(
+            "CHS color",
+            options=chs_order,
+            index=0,
+        )
+    with col_c:
+        # Show the narrative for this cell
+        label, narrative = NARRATIVES.get((sel_avri, sel_chs), ("", "No accounts in this cell."))
+        cell_n = int(n_pivot.loc[sel_avri, sel_chs])
+        if cell_n == 0:
+            st.info(f"**No accounts** match AVRI {sel_avri} × CHS {sel_chs}.")
+        else:
+            st.markdown(
+                f"<div style='padding:10px 14px; background:#fef3c7; border-left:3px solid #ea580c; "
+                f"border-radius:4px; font-size:13px; color:#78350f;'>"
+                f"<b style='color:#0f172a;'>{label}</b> "
+                f"<span style='color:#475569;'>— {narrative}</span> "
+                f"<span style='color:#94a3b8;'>({cell_n} accounts in this cell)</span></div>",
+                unsafe_allow_html=True,
+            )
+
+    if cell_n > 0:
+        # Pull the actual accounts in this cell
+        # CHS color thresholds inverted from naive_chs_score (75 / 50)
+        if sel_chs == "green":
+            chs_filter = "e.naive_chs_score >= 75"
+        elif sel_chs == "yellow":
+            chs_filter = "e.naive_chs_score >= 50 AND e.naive_chs_score < 75"
+        else:
+            chs_filter = "e.naive_chs_score < 50"
+
+        detail_sql = f"""
+        SELECT
+          a.account_id, a.industry, a.arr_dollars, a.tenure_days,
+          a.cr_score, a.um_score, a.dm_score, a.th_score,
+          a.avri_score,
+          e.naive_chs_score,
+          e.utilization_90d AS naive_util,
+          e.latest_color    AS chs_latest_color,
+          e.active_days_30  AS active_days_30,
+          a.has_grace_contract,
+          a.grace_contracts,
+          a.floor_rule_triggered
+        FROM {fq("avri_account")} a
+        JOIN {fq("metrics_existing_account")} e USING (account_id)
+        JOIN {fq("csm_rep")} r ON a.rep_id = r.csm_id
+        WHERE a.avri_color = '{sel_avri}'
+          AND {chs_filter}
+          AND {base_filters(apply_cold_start=False)}
+        ORDER BY a.arr_dollars DESC
+        LIMIT 50
+        """
+        detail_df = query(detail_sql)
+
+        st.dataframe(
+            detail_df,
+            use_container_width=True,
+            height=420,
+            hide_index=True,
+            column_config={
+                "arr_dollars":      st.column_config.NumberColumn("ARR", format="$%d"),
+                "tenure_days":      st.column_config.NumberColumn("Tenure"),
+                "avri_score":       st.column_config.ProgressColumn("AVRI", min_value=0, max_value=100, format="%.1f"),
+                "naive_chs_score":  st.column_config.ProgressColumn("CHS", min_value=0, max_value=100, format="%.1f"),
+                "cr_score":         st.column_config.ProgressColumn("CR", min_value=0, max_value=100, format="%.0f"),
+                "um_score":         st.column_config.ProgressColumn("UM", min_value=0, max_value=100, format="%.0f"),
+                "dm_score":         st.column_config.ProgressColumn("DM", min_value=0, max_value=100, format="%.0f"),
+                "th_score":         st.column_config.ProgressColumn("TH", min_value=0, max_value=100, format="%.0f"),
+                "naive_util":       st.column_config.NumberColumn("Naive util", format="%.2f"),
+                "chs_latest_color": "Latest color",
+                "active_days_30":   st.column_config.NumberColumn("Active days/30"),
+                "has_grace_contract": "Has grace?",
+                "grace_contracts":   st.column_config.NumberColumn("# grace"),
+                "floor_rule_triggered": "Floor rule",
+            },
+        )
+
+        st.caption(
+            "**How to read a row:** compare the pillar columns (CR / UM / DM / TH) to see which dimension is "
+            "driving AVRI's verdict, vs `naive_util` and `chs_latest_color` which together drive most of CHS. "
+            "Big disagreements usually trace to one of: (a) trajectory — AVRI sees decay UM doesn't see snapshot; "
+            "(b) decay weighting — AVRI's TH softens a single bad color where CHS hits hard; (c) floor rule — "
+            "AVRI capped at 50 even when other pillars are high."
+        )
 
 
 # ===========================================================================

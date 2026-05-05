@@ -1,0 +1,826 @@
+{
+  "generated_at": "2026-05-05T19:11:21.336248Z",
+  "project": "panw-gcs-northstar",
+  "dataset": "gcs_north_star",
+  "as_of_date": "2026-04-22",
+  "crosstab": [
+    {
+      "avri_color": "green",
+      "chs_color": "green",
+      "n": 444,
+      "total_arr_m": 181.47
+    },
+    {
+      "avri_color": "green",
+      "chs_color": "yellow",
+      "n": 89,
+      "total_arr_m": 33.47
+    },
+    {
+      "avri_color": "onboarding",
+      "chs_color": "red",
+      "n": 31,
+      "total_arr_m": 0.0
+    },
+    {
+      "avri_color": "onboarding",
+      "chs_color": "yellow",
+      "n": 5,
+      "total_arr_m": 0.0
+    },
+    {
+      "avri_color": "red",
+      "chs_color": "red",
+      "n": 109,
+      "total_arr_m": 47.69
+    },
+    {
+      "avri_color": "red",
+      "chs_color": "yellow",
+      "n": 25,
+      "total_arr_m": 16.87
+    },
+    {
+      "avri_color": "yellow",
+      "chs_color": "green",
+      "n": 7,
+      "total_arr_m": 0.42
+    },
+    {
+      "avri_color": "yellow",
+      "chs_color": "red",
+      "n": 8,
+      "total_arr_m": 4.89
+    },
+    {
+      "avri_color": "yellow",
+      "chs_color": "yellow",
+      "n": 48,
+      "total_arr_m": 20.2
+    }
+  ],
+  "samples_by_cell": {
+    "green__yellow": [
+      {
+        "account_id": "ACC-00204",
+        "industry": "Financial Services",
+        "arr_dollars": 8000000,
+        "tenure_days": 208,
+        "avri_score": 96.8,
+        "avri_color": "green",
+        "naive_chs_score": 71.1,
+        "chs_color": "yellow",
+        "pillars": {
+          "cr": 100.0,
+          "um": 100.0,
+          "dm": 100.0,
+          "th": 83.9
+        },
+        "naive_signals": {
+          "naive_util": 0.652,
+          "chs_latest_color": "yellow",
+          "active_days_30": 30
+        },
+        "flags": {
+          "has_grace_contract": false,
+          "floor_rule_triggered": false
+        }
+      },
+      {
+        "account_id": "ACC-00135",
+        "industry": "Manufacturing",
+        "arr_dollars": 2685100,
+        "tenure_days": 82,
+        "avri_score": 86.6,
+        "avri_color": "green",
+        "naive_chs_score": 74.4,
+        "chs_color": "yellow",
+        "pillars": {
+          "cr": 72.1,
+          "um": 100.0,
+          "dm": 91.1,
+          "th": 83.8
+        },
+        "naive_signals": {
+          "naive_util": 0.361,
+          "chs_latest_color": "green",
+          "active_days_30": 30
+        },
+        "flags": {
+          "has_grace_contract": false,
+          "floor_rule_triggered": false
+        }
+      },
+      {
+        "account_id": "ACC-00240",
+        "industry": "Tech",
+        "arr_dollars": 1729100,
+        "tenure_days": 264,
+        "avri_score": 92.5,
+        "avri_color": "green",
+        "naive_chs_score": 70.3,
+        "chs_color": "yellow",
+        "pillars": {
+          "cr": 100.0,
+          "um": 100.0,
+          "dm": 100.0,
+          "th": 62.6
+        },
+        "naive_signals": {
+          "naive_util": 0.632,
+          "chs_latest_color": "yellow",
+          "active_days_30": 30
+        },
+        "flags": {
+          "has_grace_contract": false,
+          "floor_rule_triggered": false
+        }
+      },
+      {
+        "account_id": "ACC-00770",
+        "industry": "Healthcare",
+        "arr_dollars": 1459900,
+        "tenure_days": 409,
+        "avri_score": 75.7,
+        "avri_color": "green",
+        "naive_chs_score": 58.7,
+        "chs_color": "yellow",
+        "pillars": {
+          "cr": 100.0,
+          "um": 92.2,
+          "dm": 45.6,
+          "th": 44.8
+        },
+        "naive_signals": {
+          "naive_util": 0.842,
+          "chs_latest_color": "yellow",
+          "active_days_30": 0
+        },
+        "flags": {
+          "has_grace_contract": false,
+          "floor_rule_triggered": false
+        }
+      },
+      {
+        "account_id": "ACC-00274",
+        "industry": "Tech",
+        "arr_dollars": 941700,
+        "tenure_days": 532,
+        "avri_score": 90.8,
+        "avri_color": "green",
+        "naive_chs_score": 70.4,
+        "chs_color": "yellow",
+        "pillars": {
+          "cr": 100.0,
+          "um": 100.0,
+          "dm": 100.0,
+          "th": 53.9
+        },
+        "naive_signals": {
+          "naive_util": 0.635,
+          "chs_latest_color": "yellow",
+          "active_days_30": 30
+        },
+        "flags": {
+          "has_grace_contract": false,
+          "floor_rule_triggered": false
+        }
+      }
+    ],
+    "red__yellow": [
+      {
+        "account_id": "ACC-00047",
+        "industry": "Healthcare",
+        "arr_dollars": 8000000,
+        "tenure_days": 21,
+        "avri_score": 29.7,
+        "avri_color": "red",
+        "naive_chs_score": 57.4,
+        "chs_color": "yellow",
+        "pillars": {
+          "cr": 16.8,
+          "um": 0.0,
+          "dm": 23.3,
+          "th": 100.0
+        },
+        "naive_signals": {
+          "naive_util": 0.084,
+          "chs_latest_color": "green",
+          "active_days_30": 21
+        },
+        "flags": {
+          "has_grace_contract": false,
+          "floor_rule_triggered": false
+        }
+      },
+      {
+        "account_id": "ACC-00036",
+        "industry": "Financial Services",
+        "arr_dollars": 5023700,
+        "tenure_days": 37,
+        "avri_score": 35.8,
+        "avri_color": "red",
+        "naive_chs_score": 65.2,
+        "chs_color": "yellow",
+        "pillars": {
+          "cr": 25.9,
+          "um": 0.0,
+          "dm": 40.0,
+          "th": 100.0
+        },
+        "naive_signals": {
+          "naive_util": 0.13,
+          "chs_latest_color": "green",
+          "active_days_30": 30
+        },
+        "flags": {
+          "has_grace_contract": false,
+          "floor_rule_triggered": false
+        }
+      },
+      {
+        "account_id": "ACC-00567",
+        "industry": "Manufacturing",
+        "arr_dollars": 800000,
+        "tenure_days": 40,
+        "avri_score": 37.7,
+        "avri_color": "red",
+        "naive_chs_score": 67.4,
+        "chs_color": "yellow",
+        "pillars": {
+          "cr": 37.0,
+          "um": 0.0,
+          "dm": 43.3,
+          "th": 89.6
+        },
+        "naive_signals": {
+          "naive_util": 0.185,
+          "chs_latest_color": "green",
+          "active_days_30": 30
+        },
+        "flags": {
+          "has_grace_contract": false,
+          "floor_rule_triggered": false
+        }
+      },
+      {
+        "account_id": "ACC-00601",
+        "industry": "Energy",
+        "arr_dollars": 632500,
+        "tenure_days": 23,
+        "avri_score": 30.9,
+        "avri_color": "red",
+        "naive_chs_score": 59.2,
+        "chs_color": "yellow",
+        "pillars": {
+          "cr": 19.2,
+          "um": 0.0,
+          "dm": 25.6,
+          "th": 100.0
+        },
+        "naive_signals": {
+          "naive_util": 0.096,
+          "chs_latest_color": "green",
+          "active_days_30": 23
+        },
+        "flags": {
+          "has_grace_contract": false,
+          "floor_rule_triggered": false
+        }
+      },
+      {
+        "account_id": "ACC-00267",
+        "industry": "Healthcare",
+        "arr_dollars": 492200,
+        "tenure_days": 38,
+        "avri_score": 32.9,
+        "avri_color": "red",
+        "naive_chs_score": 66.3,
+        "chs_color": "yellow",
+        "pillars": {
+          "cr": 31.7,
+          "um": 0.0,
+          "dm": 42.2,
+          "th": 74.9
+        },
+        "naive_signals": {
+          "naive_util": 0.158,
+          "chs_latest_color": "green",
+          "active_days_30": 30
+        },
+        "flags": {
+          "has_grace_contract": false,
+          "floor_rule_triggered": false
+        }
+      }
+    ],
+    "yellow__red": [
+      {
+        "account_id": "ACC-00096",
+        "industry": "Retail",
+        "arr_dollars": 2538000,
+        "tenure_days": 53,
+        "avri_score": 50.0,
+        "avri_color": "yellow",
+        "naive_chs_score": 39.6,
+        "chs_color": "red",
+        "pillars": {
+          "cr": 47.9,
+          "um": 100.0,
+          "dm": 57.8,
+          "th": 18.9
+        },
+        "naive_signals": {
+          "naive_util": 0.24,
+          "chs_latest_color": "red",
+          "active_days_30": 30
+        },
+        "flags": {
+          "has_grace_contract": false,
+          "floor_rule_triggered": true
+        }
+      },
+      {
+        "account_id": "ACC-00104",
+        "industry": "Tech",
+        "arr_dollars": 1833800,
+        "tenure_days": 20,
+        "avri_score": 63.5,
+        "avri_color": "yellow",
+        "naive_chs_score": 47.0,
+        "chs_color": "red",
+        "pillars": {
+          "cr": 43.3,
+          "um": 100.0,
+          "dm": 22.2,
+          "th": 80.2
+        },
+        "naive_signals": {
+          "naive_util": 0.216,
+          "chs_latest_color": "yellow",
+          "active_days_30": 20
+        },
+        "flags": {
+          "has_grace_contract": false,
+          "floor_rule_triggered": false
+        }
+      },
+      {
+        "account_id": "ACC-00967",
+        "industry": "Telecom",
+        "arr_dollars": 206500,
+        "tenure_days": 85,
+        "avri_score": 50.0,
+        "avri_color": "yellow",
+        "naive_chs_score": 49.1,
+        "chs_color": "red",
+        "pillars": {
+          "cr": 95.7,
+          "um": 100.0,
+          "dm": 93.3,
+          "th": 19.4
+        },
+        "naive_signals": {
+          "naive_util": 0.478,
+          "chs_latest_color": "red",
+          "active_days_30": 30
+        },
+        "flags": {
+          "has_grace_contract": false,
+          "floor_rule_triggered": true
+        }
+      },
+      {
+        "account_id": "ACC-00703",
+        "industry": "Manufacturing",
+        "arr_dollars": 102500,
+        "tenure_days": 21,
+        "avri_score": 61.4,
+        "avri_color": "yellow",
+        "naive_chs_score": 48.0,
+        "chs_color": "red",
+        "pillars": {
+          "cr": 44.9,
+          "um": 100.0,
+          "dm": 23.3,
+          "th": 66.4
+        },
+        "naive_signals": {
+          "naive_util": 0.224,
+          "chs_latest_color": "yellow",
+          "active_days_30": 21
+        },
+        "flags": {
+          "has_grace_contract": false,
+          "floor_rule_triggered": false
+        }
+      },
+      {
+        "account_id": "ACC-00199",
+        "industry": "Manufacturing",
+        "arr_dollars": 83200,
+        "tenure_days": 34,
+        "avri_score": 50.0,
+        "avri_color": "yellow",
+        "naive_chs_score": 47.1,
+        "chs_color": "red",
+        "pillars": {
+          "cr": 85.7,
+          "um": 100.0,
+          "dm": 37.8,
+          "th": 5.7
+        },
+        "naive_signals": {
+          "naive_util": 0.429,
+          "chs_latest_color": "red",
+          "active_days_30": 30
+        },
+        "flags": {
+          "has_grace_contract": false,
+          "floor_rule_triggered": true
+        }
+      }
+    ],
+    "yellow__green": [
+      {
+        "account_id": "ACC-00026",
+        "industry": "Healthcare",
+        "arr_dollars": 165300,
+        "tenure_days": 130,
+        "avri_score": 50.0,
+        "avri_color": "yellow",
+        "naive_chs_score": 78.2,
+        "chs_color": "green",
+        "pillars": {
+          "cr": 100.0,
+          "um": 100.0,
+          "dm": 100.0,
+          "th": 28.5
+        },
+        "naive_signals": {
+          "naive_util": 0.83,
+          "chs_latest_color": "yellow",
+          "active_days_30": 30
+        },
+        "flags": {
+          "has_grace_contract": false,
+          "floor_rule_triggered": true
+        }
+      },
+      {
+        "account_id": "ACC-00878",
+        "industry": "Retail",
+        "arr_dollars": 62900,
+        "tenure_days": 17,
+        "avri_score": 67.8,
+        "avri_color": "yellow",
+        "naive_chs_score": 76.3,
+        "chs_color": "green",
+        "pillars": {
+          "cr": 60.0,
+          "um": 100.0,
+          "dm": 18.9,
+          "th": 80.2
+        },
+        "naive_signals": {
+          "naive_util": 3.326,
+          "chs_latest_color": "yellow",
+          "active_days_30": 17
+        },
+        "flags": {
+          "has_grace_contract": false,
+          "floor_rule_triggered": false
+        }
+      },
+      {
+        "account_id": "ACC-00752",
+        "industry": "Tech",
+        "arr_dollars": 55700,
+        "tenure_days": 1,
+        "avri_score": 68.2,
+        "avri_color": "yellow",
+        "naive_chs_score": 80.7,
+        "chs_color": "green",
+        "pillars": {
+          "cr": 60.0,
+          "um": 100.0,
+          "dm": 1.1,
+          "th": 100.0
+        },
+        "naive_signals": {
+          "naive_util": 3.605,
+          "chs_latest_color": "green",
+          "active_days_30": 1
+        },
+        "flags": {
+          "has_grace_contract": false,
+          "floor_rule_triggered": false
+        }
+      },
+      {
+        "account_id": "ACC-00609",
+        "industry": "Financial Services",
+        "arr_dollars": 46300,
+        "tenure_days": 174,
+        "avri_score": 50.0,
+        "avri_color": "yellow",
+        "naive_chs_score": 76.0,
+        "chs_color": "green",
+        "pillars": {
+          "cr": 100.0,
+          "um": 100.0,
+          "dm": 100.0,
+          "th": 19.9
+        },
+        "naive_signals": {
+          "naive_util": 0.775,
+          "chs_latest_color": "yellow",
+          "active_days_30": 30
+        },
+        "flags": {
+          "has_grace_contract": false,
+          "floor_rule_triggered": true
+        }
+      },
+      {
+        "account_id": "ACC-00497",
+        "industry": "Healthcare",
+        "arr_dollars": 42900,
+        "tenure_days": 51,
+        "avri_score": 68.9,
+        "avri_color": "yellow",
+        "naive_chs_score": 85.0,
+        "chs_color": "green",
+        "pillars": {
+          "cr": 60.0,
+          "um": 100.0,
+          "dm": 56.7,
+          "th": 48.0
+        },
+        "naive_signals": {
+          "naive_util": 3.072,
+          "chs_latest_color": "yellow",
+          "active_days_30": 30
+        },
+        "flags": {
+          "has_grace_contract": false,
+          "floor_rule_triggered": false
+        }
+      }
+    ],
+    "onboarding__red": [
+      {
+        "account_id": "ACC-00070",
+        "industry": "Manufacturing",
+        "arr_dollars": 0,
+        "tenure_days": 45,
+        "avri_score": null,
+        "avri_color": "onboarding",
+        "naive_chs_score": 13.4,
+        "chs_color": "red",
+        "pillars": {
+          "cr": null,
+          "um": null,
+          "dm": null,
+          "th": null
+        },
+        "naive_signals": {
+          "naive_util": 0.0,
+          "chs_latest_color": "red",
+          "active_days_30": 5
+        },
+        "flags": {
+          "has_grace_contract": true,
+          "floor_rule_triggered": false
+        }
+      },
+      {
+        "account_id": "ACC-00006",
+        "industry": "Education",
+        "arr_dollars": 0,
+        "tenure_days": 84,
+        "avri_score": null,
+        "avri_color": "onboarding",
+        "naive_chs_score": 16.7,
+        "chs_color": "red",
+        "pillars": {
+          "cr": null,
+          "um": null,
+          "dm": null,
+          "th": null
+        },
+        "naive_signals": {
+          "naive_util": 0.001,
+          "chs_latest_color": "red",
+          "active_days_30": 10
+        },
+        "flags": {
+          "has_grace_contract": true,
+          "floor_rule_triggered": false
+        }
+      },
+      {
+        "account_id": "ACC-00992",
+        "industry": "Manufacturing",
+        "arr_dollars": 0,
+        "tenure_days": 87,
+        "avri_score": null,
+        "avri_color": "onboarding",
+        "naive_chs_score": 12.7,
+        "chs_color": "red",
+        "pillars": {
+          "cr": null,
+          "um": null,
+          "dm": null,
+          "th": null
+        },
+        "naive_signals": {
+          "naive_util": 0.001,
+          "chs_latest_color": "red",
+          "active_days_30": 4
+        },
+        "flags": {
+          "has_grace_contract": true,
+          "floor_rule_triggered": false
+        }
+      },
+      {
+        "account_id": "ACC-00441",
+        "industry": "Financial Services",
+        "arr_dollars": 0,
+        "tenure_days": 5,
+        "avri_score": null,
+        "avri_color": "onboarding",
+        "naive_chs_score": 42.8,
+        "chs_color": "red",
+        "pillars": {
+          "cr": null,
+          "um": null,
+          "dm": null,
+          "th": null
+        },
+        "naive_signals": {
+          "naive_util": 0.003,
+          "chs_latest_color": "green",
+          "active_days_30": 4
+        },
+        "flags": {
+          "has_grace_contract": true,
+          "floor_rule_triggered": false
+        }
+      },
+      {
+        "account_id": "ACC-00674",
+        "industry": "Financial Services",
+        "arr_dollars": 0,
+        "tenure_days": 7,
+        "avri_score": null,
+        "avri_color": "onboarding",
+        "naive_chs_score": 25.0,
+        "chs_color": "red",
+        "pillars": {
+          "cr": null,
+          "um": null,
+          "dm": null,
+          "th": null
+        },
+        "naive_signals": {
+          "naive_util": null,
+          "chs_latest_color": "yellow",
+          "active_days_30": 0
+        },
+        "flags": {
+          "has_grace_contract": true,
+          "floor_rule_triggered": false
+        }
+      }
+    ],
+    "onboarding__yellow": [
+      {
+        "account_id": "ACC-00887",
+        "industry": "Energy",
+        "arr_dollars": 0,
+        "tenure_days": 22,
+        "avri_score": null,
+        "avri_color": "onboarding",
+        "naive_chs_score": 55.5,
+        "chs_color": "yellow",
+        "pillars": {
+          "cr": null,
+          "um": null,
+          "dm": null,
+          "th": null
+        },
+        "naive_signals": {
+          "naive_util": 0.037,
+          "chs_latest_color": "green",
+          "active_days_30": 21
+        },
+        "flags": {
+          "has_grace_contract": true,
+          "floor_rule_triggered": false
+        }
+      },
+      {
+        "account_id": "ACC-00298",
+        "industry": "Financial Services",
+        "arr_dollars": 0,
+        "tenure_days": 24,
+        "avri_score": null,
+        "avri_color": "onboarding",
+        "naive_chs_score": 57.2,
+        "chs_color": "yellow",
+        "pillars": {
+          "cr": null,
+          "um": null,
+          "dm": null,
+          "th": null
+        },
+        "naive_signals": {
+          "naive_util": 0.047,
+          "chs_latest_color": "green",
+          "active_days_30": 23
+        },
+        "flags": {
+          "has_grace_contract": true,
+          "floor_rule_triggered": false
+        }
+      },
+      {
+        "account_id": "ACC-00457",
+        "industry": "Healthcare",
+        "arr_dollars": 0,
+        "tenure_days": 23,
+        "avri_score": null,
+        "avri_color": "onboarding",
+        "naive_chs_score": 56.5,
+        "chs_color": "yellow",
+        "pillars": {
+          "cr": null,
+          "um": null,
+          "dm": null,
+          "th": null
+        },
+        "naive_signals": {
+          "naive_util": 0.046,
+          "chs_latest_color": "green",
+          "active_days_30": 22
+        },
+        "flags": {
+          "has_grace_contract": true,
+          "floor_rule_triggered": false
+        }
+      },
+      {
+        "account_id": "ACC-00504",
+        "industry": "Retail",
+        "arr_dollars": 0,
+        "tenure_days": 25,
+        "avri_score": null,
+        "avri_color": "onboarding",
+        "naive_chs_score": 54.8,
+        "chs_color": "yellow",
+        "pillars": {
+          "cr": null,
+          "um": null,
+          "dm": null,
+          "th": null
+        },
+        "naive_signals": {
+          "naive_util": 0.038,
+          "chs_latest_color": "green",
+          "active_days_30": 20
+        },
+        "flags": {
+          "has_grace_contract": true,
+          "floor_rule_triggered": false
+        }
+      },
+      {
+        "account_id": "ACC-00728",
+        "industry": "Healthcare",
+        "arr_dollars": 0,
+        "tenure_days": 20,
+        "avri_score": null,
+        "avri_color": "onboarding",
+        "naive_chs_score": 54.6,
+        "chs_color": "yellow",
+        "pillars": {
+          "cr": null,
+          "um": null,
+          "dm": null,
+          "th": null
+        },
+        "naive_signals": {
+          "naive_util": 0.047,
+          "chs_latest_color": "green",
+          "active_days_30": 19
+        },
+        "flags": {
+          "has_grace_contract": true,
+          "floor_rule_triggered": false
+        }
+      }
+    ]
+  }
+}

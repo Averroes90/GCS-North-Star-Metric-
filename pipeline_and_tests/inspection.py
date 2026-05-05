@@ -195,6 +195,23 @@ SELECT * FROM `{project}.{dataset}.avri_region`
 ORDER BY region_avri_dollar_weighted DESC
 """
 
+Q_GRACE_BREAKDOWN = """
+-- v1.3: how many accounts are in grace, how does it break down by tenure
+SELECT
+  CASE
+    WHEN all_contracts_in_grace THEN 'all-grace (onboarding)'
+    WHEN has_grace_contract THEN 'mixed (some activated, some grace)'
+    ELSE 'fully activated'
+  END AS grace_status,
+  COUNT(*) AS n,
+  ROUND(AVG(arr_dollars), 0) AS avg_arr,
+  ROUND(AVG(tenure_days), 0) AS avg_tenure_days,
+  ROUND(AVG(grace_contracts), 2) AS avg_grace_contracts
+FROM `{project}.{dataset}.avri_account`
+GROUP BY grace_status
+ORDER BY n DESC
+"""
+
 Q_TENURE_COLOR_BREAKDOWN = """
 -- AVRI distribution split by tenure bucket. Cold-start accounts (<90 days)
 -- legitimately can't be assessed by the momentum-based pillars; their
@@ -252,6 +269,68 @@ ORDER BY pos, csm_avri_dollar_weighted DESC
 
 
 # ---------------------------------------------------------------------------
+# v2.0: Realized Value queries
+# ---------------------------------------------------------------------------
+
+Q_RV_HEADLINE = """
+SELECT
+  COUNT(*) AS n_total,
+  COUNTIF(avri_score IS NOT NULL) AS n_scored,
+  COUNTIF(avri_score IS NULL)     AS n_grace,
+  ROUND(SUM(arr_dollars)  / 1e6, 2)        AS total_arr_m,
+  ROUND(SUM(rv_dollars)   / 1e6, 2)        AS total_rv_m,
+  ROUND((SUM(IF(avri_score IS NOT NULL, arr_dollars, 0)) - SUM(rv_dollars)) / 1e6, 2)
+                                            AS total_unrealized_m,
+  ROUND(SAFE_DIVIDE(SUM(rv_dollars),
+                    SUM(IF(avri_score IS NOT NULL, arr_dollars, 0))), 4)
+                                            AS realization_rate
+FROM `{project}.{dataset}.avri_account`
+"""
+
+Q_RV_PILLAR_DECOMP_GLOBAL = """
+SELECT
+  ROUND(SUM(unrealized_cr_dollars)    / 1e6, 2) AS unrealized_cr_m,
+  ROUND(SUM(unrealized_um_dollars)    / 1e6, 2) AS unrealized_um_m,
+  ROUND(SUM(unrealized_dm_dollars)    / 1e6, 2) AS unrealized_dm_m,
+  ROUND(SUM(unrealized_th_dollars)    / 1e6, 2) AS unrealized_th_m,
+  ROUND(SUM(unrealized_floor_dollars) / 1e6, 2) AS unrealized_floor_m
+FROM `{project}.{dataset}.avri_account`
+WHERE all_contracts_in_grace = FALSE
+"""
+
+Q_RV_BY_REGION = """
+SELECT
+  region,
+  account_count,
+  ROUND(book_arr_dollars / 1e6, 2)     AS book_arr_m,
+  ROUND(book_rv_dollars  / 1e6, 2)     AS book_rv_m,
+  ROUND((scored_arr_dollars - book_rv_dollars) / 1e6, 2) AS unrealized_m,
+  ROUND(realization_rate * 100, 1)     AS realization_pct,
+  ROUND(unrealized_cr_dollars    / 1e6, 2) AS unr_cr_m,
+  ROUND(unrealized_um_dollars    / 1e6, 2) AS unr_um_m,
+  ROUND(unrealized_dm_dollars    / 1e6, 2) AS unr_dm_m,
+  ROUND(unrealized_th_dollars    / 1e6, 2) AS unr_th_m,
+  ROUND(unrealized_floor_dollars / 1e6, 2) AS unr_floor_m
+FROM `{project}.{dataset}.avri_region`
+ORDER BY book_rv_m DESC
+"""
+
+Q_RV_TOP_LANDMINES = """
+SELECT
+  account_id, industry, rep_id,
+  ROUND(arr_dollars,            0) AS arr,
+  ROUND(rv_dollars,             0) AS rv,
+  ROUND(arr_dollars - rv_dollars, 0) AS unrealized,
+  ROUND(avri_score, 1)             AS avri,
+  avri_color
+FROM `{project}.{dataset}.avri_account`
+WHERE avri_score IS NOT NULL AND avri_color != 'green'
+ORDER BY (arr_dollars - rv_dollars) DESC
+LIMIT 15
+"""
+
+
+# ---------------------------------------------------------------------------
 # Report writer
 # ---------------------------------------------------------------------------
 
@@ -274,6 +353,11 @@ def write_report(
     csm_df: pd.DataFrame,
     tenure_df: pd.DataFrame,
     at_risk_df: pd.DataFrame,
+    grace_df: pd.DataFrame,
+    rv_headline_df: pd.DataFrame | None = None,
+    rv_pillar_df: pd.DataFrame | None = None,
+    rv_region_df: pd.DataFrame | None = None,
+    rv_landmines_df: pd.DataFrame | None = None,
 ):
     OUTPUT_PATH.parent.mkdir(parents=True, exist_ok=True)
 
@@ -333,6 +417,42 @@ def write_report(
                  "AVRI flags them as Yellow or Red. These are the accounts a CSM should be working *today*.\n")
     parts.append(df_to_md(at_risk_df, max_rows=20))
 
+    parts.append("\n\n## 12. v1.3 Activation Grace Period status\n")
+    parts.append("New in v1.3: each contract has a 90-day activation grace window. A contract is excluded "
+                 "from CR's denominator until it has either hit 15% of monthly commit in cumulative usage "
+                 "OR been signed for 90+ days. Accounts with all contracts in grace are flagged "
+                 "`onboarding` with NULL scores; they don't drag the CSM's average down during ramp.\n")
+    parts.append(df_to_md(grace_df, max_rows=10))
+
+    if rv_headline_df is not None and not rv_headline_df.empty:
+        parts.append("\n\n## 13. v2.0 Realized Value — org headline\n")
+        parts.append("RV = ARR × AVRI/100 (linear). Onboarding accounts contribute 0 by definition; "
+                     "their ARR is reported separately and not part of the realization-rate denominator. "
+                     "The realization rate answers, in one number, the executive question: "
+                     "*\"of every dollar booked, how much is being actively realized?\"*\n")
+        parts.append(df_to_md(rv_headline_df, max_rows=5))
+
+    if rv_pillar_df is not None and not rv_pillar_df.empty:
+        parts.append("\n\n## 14. v2.0 Realized Value — pillar attribution of unrealized $\n")
+        parts.append("Unrealized $ decomposes cleanly across the four pillars (and floor-rule "
+                     "residual). Each column = `Σ ARR × weight × (100 − pillar_score) / 100`. "
+                     "The five contributions sum to total unrealized $ within rounding. This is "
+                     "the data behind the lobby's pillar heatmap.\n")
+        parts.append(df_to_md(rv_pillar_df, max_rows=5))
+
+    if rv_region_df is not None and not rv_region_df.empty:
+        parts.append("\n\n## 15. v2.0 Realized Value — by region\n")
+        parts.append("Realization rate, total RV, and pillar-decomposition of unrealized $ at the "
+                     "region grain. Drill in the dashboard for CSM and account level.\n")
+        parts.append(df_to_md(rv_region_df, max_rows=10))
+
+    if rv_landmines_df is not None and not rv_landmines_df.empty:
+        parts.append("\n\n## 16. v2.0 Renewal landmines — top 15 unrealized-$ accounts\n")
+        parts.append("Largest single-account contributions to the total unrealized-$ figure. "
+                     "These are the operationally important accounts: high ARR, low AVRI, "
+                     "biggest dollar weight. The deck's case-card stories are pulled from this list.\n")
+        parts.append(df_to_md(rv_landmines_df, max_rows=15))
+
     parts.append("\n\n## Recommended next steps\n")
     parts.append(textwrap.dedent("""\
         - **Pick 3 deck-story accounts** from sections 4, 5, 6 above. One shelfware,
@@ -389,6 +509,11 @@ def main() -> int:
     csm_df          = q("Top/bottom CSMs", Q_CSM_TOP_BOTTOM)
     tenure_df       = q("Tenure bucket × color", Q_TENURE_COLOR_BREAKDOWN)
     at_risk_df      = q("At-risk renewals (next 90d)", Q_AT_RISK_RENEWALS)
+    grace_df        = q("v1.3 grace status breakdown", Q_GRACE_BREAKDOWN)
+    rv_headline_df  = q("v2.0 RV headline", Q_RV_HEADLINE)
+    rv_pillar_df    = q("v2.0 RV pillar attribution", Q_RV_PILLAR_DECOMP_GLOBAL)
+    rv_region_df    = q("v2.0 RV by region", Q_RV_BY_REGION)
+    rv_landmines_df = q("v2.0 Top renewal landmines", Q_RV_TOP_LANDMINES)
 
     print()
     print("AVRI distribution:")
@@ -409,7 +534,11 @@ def main() -> int:
         overscored_df, underscored_df,
         shelfware_df, spike_drop_df, overage_df, floor_df,
         region_df, csm_df,
-        tenure_df, at_risk_df,
+        tenure_df, at_risk_df, grace_df,
+        rv_headline_df=rv_headline_df,
+        rv_pillar_df=rv_pillar_df,
+        rv_region_df=rv_region_df,
+        rv_landmines_df=rv_landmines_df,
     )
     return 0
 

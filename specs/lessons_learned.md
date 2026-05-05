@@ -208,4 +208,153 @@ Fix: use `ROW_NUMBER() OVER (...)` window functions to label rows, then `WHERE r
 
 ---
 
-## 14. (template: add new entries here)
+## 14. Multicollinearity in composite pillars: TH proxy leaks the consumption signal
+
+**When:** Q&A prep review of metric_v1.2.
+
+**Concern raised:** AVRI claims to balance four independent dimensions. But in v1.2, the TH pillar reads `account_health.health_color`, which in real systems is a CSM-set rating that's partly informed by usage levels. So TH is partly correlated with the CR/UM/DM pillars (which are all derived from consumption data). The composite may be measuring 3 dimensions plus a noisy proxy of one of them, not 4 independent dimensions.
+
+**In our synthetic data, the correlation is real by construction:**
+- Shelfware persona: low consumption AND drifts to red.
+- Spike-and-drop persona: low recent consumption AND drifts to red after Month 1.
+- Healthy personas: normal consumption AND stays green.
+
+So `health_color` is partially correlated with the consumption pillars even in our generated data.
+
+**Why it doesn't fully break AVRI:**
+
+AVRI is not a regression. We're not estimating coefficients statistically; we're declaring weights heuristically. So strict multicollinearity (which destabilizes coefficient estimates in regression models) doesn't directly degrade AVRI's stability. But the softer concern is real: if TH leaks the consumption signal, "usage" is implicitly weighted >60% in the composite even though the explicit weights say 60%. The "four independent pillars" framing slightly overstates the orthogonality.
+
+**Why CR / UM / DM are decorrelated by design** (despite all being usage-derived):
+- CR measures **level** (consumed vs commit, last 90 days)
+- UM measures **trend** (recent 90d / trailing 365d ratio)
+- DM measures **breadth** (count of distinct active days last 90)
+
+A 95% utilization account can have high or low UM depending on trajectory. High DM doesn't imply high CR (could be daily but tiny consumption). Spike-and-drop has high DM in Month 1 and low DM after, with the same source data producing very different signals. They encode distinct features even from a shared source.
+
+**The fix (v2 plan):** Replace `health_color` with three signals that are genuinely orthogonal to consumption:
+- **Sev-1 frequency** — about platform reliability for the customer; independent of how much they use
+- **SLA attainment %** — about whether PANW met its commitments; independent of usage
+- **Active escalation count** — about relationship dysfunction; independent of usage
+
+These signals require schema additions (tickets table, SLA log, escalation log) that aren't in the brief's data model. metric_v0.md and metric_v1.md already document this as the v2 path; this entry makes the *reason* explicit.
+
+**Day-30 production milestone:** compute the correlation matrix between pillar scores on real data.
+- If `corr(TH, CR/UM/DM) > 0.6`: confirms heavy redundancy → accelerate the proxy replacement.
+- If `corr(TH, CR/UM/DM) < 0.3`: proxy is doing more independent work than feared → keep `health_color` and add the orthogonal signals as additive enrichments rather than replacements.
+
+**Lesson:** When designing a composite from a thin schema, audit your "independent" components for shared upstream causes. A pillar that *appears* orthogonal because it has a different *name* may not be orthogonal in *signal*. The right defense is a measured correlation matrix, not a designed-in claim of independence.
+
+**Q&A defense scripted:**
+> *"You're right that TH is the weakest pillar in terms of orthogonality. In v1.2, `health_color` is a CSM-rated proxy that partly leaks the consumption signal back in. The v2 fix is to replace it with three independent inputs — Sev-1 frequency, SLA attainment, exec escalations — that measure platform reliability and relationship health, not usage. Once those replace the proxy, TH becomes truly independent of CR/UM/DM. Day-30 milestone is to compute the actual correlation matrix and let the data confirm whether the swap is urgent or incremental."*
+
+---
+
+## 15. Bookings rewards: cold-start trap and the Activation Grace Period (v1.3)
+
+**When:** Q&A prep, working through the brief's "balances initial contract bookings" requirement.
+
+**The flaw discovered:** v1.2 AVRI did not reward new bookings — and in practice, *penalized* them. The moment a contract was signed, it counted in CR's denominator. Consumption hadn't yet ramped (cold-start), so CR scored low for ~90 days. A CSM who landed $2M of new ARR could *lower* their dollar-weighted AVRI vs a CSM who landed nothing, because the new accounts at $2M ARR were dragging the rollup down.
+
+**Concrete example that broke the design:**
+- CSM A: 20 stable healthy accounts, $5M ARR, all Green → CSM AVRI ~90
+- CSM B: same 20 + 5 newly-signed accounts ($2M new) at AVRI ~30 (cold-start) → CSM AVRI ~78
+
+CSM B was punished for landing new business. That's the wrong incentive shape.
+
+**Two design alternatives considered:**
+
+1. **Commercial Health pillar** — explicit 5th pillar rewarding active contracts, multi-year commits, mid-year expansion. Risks: TCV-trap (rewards size); briefly masks shelfware-from-day-one accounts during the recency-bonus window; breaks "4 pillars for 4 dimensions" elegance.
+
+2. **Activation Grace Period** — a contract is excluded from CR's denominator until it's "activated" by either Trigger A (cumulative usage ≥ 15% of monthly commit) or Trigger B (90 days since signing), whichever first. Accounts with all contracts in grace get NULL AVRI scores and an `onboarding` color. Adopted in v1.3.
+
+**Why the grace period won:**
+- **Solves the cold-start drop completely** — new contracts don't penalize during ramp
+- **Doesn't reward raw size** — stays a value-realization metric philosophically
+- **Catches shelfware-from-day-one** correctly via Trigger B at day 91
+- **Mid-year expansion handled cleanly** — old contract continues scoring; new contract is in grace until it ramps
+- **Smaller implementation footprint** — fits inside existing CR pillar; no re-weighting
+
+**Parameter choices:**
+- 15% threshold = ~4-5 days of full-rate usage in a month. Meaningful adoption without being unreachable.
+- 90-day timeout = matches existing CR/UM/DM trailing windows; aligns with quarterly business reviews.
+- Either trigger fires first → activates. Encourages fast ramp without rewarding it directly.
+- All-grace accounts: NULL scores, `onboarding` color. Not falsely Red; visible in the table for diagnostics.
+
+**Edge case audit:**
+
+| Scenario | v1.2 behavior | v1.3 behavior |
+|---|---|---|
+| Brand new contract, ramps fast | Score drops then recovers | Stays neutral, then activates as Green |
+| Brand new contract, never ramps | Drops, stays low | Stays neutral until day 91, then drops correctly |
+| Mid-year expansion (existing healthy account) | Score temporarily drops (denominator inflation) | Old contract keeps scoring; new contract in grace; no drop |
+| Multi-year contract | No effect | No effect (CS pillar would have rewarded; grace doesn't) |
+| Contract renewal | No effect | No effect |
+
+**What this design does NOT do:**
+- Doesn't directly reward signing (no positive contribution for a contract existing)
+- Doesn't reward multi-year commitments specifically
+- Doesn't reward mid-year expansion as an event (just doesn't penalize it)
+
+For panel responses asking "where do you reward bookings?": *"AVRI is the value-realization overlay; bookings stays measured commercially via ARR. The grace period ensures AVRI never penalizes the act of signing. If you want direct booking rewards inside AVRI, v2 candidate is an Initial Adoption Speed pillar — measures time-to-first-X% utilization. But that's bookings-adjacent, not bookings itself, by design."*
+
+**Lesson:** When designing a metric that the brief asks to "balance" multiple dimensions, "balance" can mean either (a) explicit positive contribution from each dimension or (b) integrated treatment such that no single dimension dominates. The strict reading is (a); the generous reading is (b). For dimensions you don't want to *directly reward* (because rewarding them creates perverse incentives), the right move is to ensure they're *not penalized* either — neutrality. The grace period is the neutrality construct for bookings.
+
+---
+
+## 16. Scale-vs-quality tension; surfaced by user pushback, not first design pass
+
+**The catch:** During v2 strategizing, the question came up: *"Two CSMs with identical % usage profiles but very different book sizes — does AVRI distinguish them?"* My initial answer was "no, by design — health is a ratio." That answer was wrong-shaped. The brief lists *bookings* as one of four dimensions to balance; we'd operationalized bookings as Commit Realization (a ratio), which addresses the *quality* of bookings but not their *scale*. Two CSMs at 80% util on $25M and $1M books are doing different jobs — both well, but different. AVRI alone treated them as identical. That's the dimension we'd skipped.
+
+**The resolution:** RV (Realized Value) — `RV = ARR × AVRI/100` — adds the scale dimension *without* contaminating AVRI. AVRI stays the quality signal (segment-fair, comp-grade); RV lives at the executive-dashboard layer (scale-aware, $-grade). Three views on the same engine, three different consumers.
+
+**Lesson:** When you've made an interpretive choice about how to operationalize a brief requirement, *flag it as a choice* in the spec. Don't bury it under "by design." The brief said balance four dimensions; we made bookings into a ratio; that was a choice, not a derivation. Adversarial reviewers (or just thoughtful users) will surface buried choices, and you want to be the one who surfaced them first.
+
+---
+
+## 17. KE analogy was a story device, not a derivation; chose linear RV instead
+
+**The over-reach:** I initially proposed `RV = ARR × (AVRI/100)²` with the kinetic-energy analogy as justification — *"mass linear, velocity squared, like KE."* The user asked "are you sure that's the right power, or is this just speculation?" Pushed on it, I conceded: KE squares velocity because it falls out of `∫F·dx = ½mv²`, an integral structure that exists because position and velocity have a definite kinematic relationship. AVRI doesn't have an analogous structure that produces "(AVRI)²" from anywhere. The analogy is *suggestive*, not *implied*.
+
+**The empirical-fit defense was also speculative.** I claimed CS literature shows sigmoidal renewal curves, and quadratic is a first-order approximation. What I actually know: logistic regression for churn prediction produces sigmoidal outputs *by construction of the model class*, not because the underlying reality is sigmoidal. The claim that "CS data shows" a particular AVRI-to-revenue shape was loose; I don't have a study to cite.
+
+**The chosen path:** v2 ships linear RV. Three concrete reasons:
+1. **Decomposability** — linear factors cleanly across pillars and aggregates; quadratic doesn't.
+2. **Honesty** — without renewal data, we can't justify the convexity.
+3. **Calibratability** — v3 fits the actual function from historical outcomes.
+
+**Lesson:** A clean analogy can mislead the chooser before the chosen formula has been challenged. The user's "are you sure?" question is the move that broke the spell. When designing under uncertainty, the conservative version of a metric is the one defensible under "what if the empirical curve is something completely different?" Linear handles that; quadratic doesn't.
+
+**Process improvement:** track unverified empirical claims explicitly. If a paragraph contains the words "real data shows" or "studies suggest," verify the citation or replace with "we hypothesize."
+
+---
+
+## 18. RV is value-at-stake, not performance — almost misused it for CSM ranking
+
+**The near-miss:** Once RV was on the table, my reflex was to use it for everything, including CSM ranking. The chart-of-CSMs-shifted-under-RV-vs-AVRI showed dramatic position changes (some CSMs +30, others −30). I framed this as a feature. The user asked: *"pick a big mover and explain materially what caused the move."*
+
+**What the data showed:** CSM-019 (AMER Enterprise, $17.4M book, AVRI=44, $5.2M RV) rises from rank 48 to rank 16 under RV. CSM-001 (AMER Mid-Market, $1.3M book, AVRI=89, $1.14M RV) falls from rank 5 to rank 39. Pattern: every big riser is Enterprise with mediocre AVRI; every big faller is Mid-Market with excellent AVRI. RV-as-ranking *mechanically rewards segment assignment*, not performance.
+
+**The resolution:** AVRI stays the CSM evaluation metric. RV is for executive risk views, account-level triage, and the "where are dollars leaking?" question. Three metrics, three consumers, three uses. Documented as the metric architecture in `metric_v2.md` Section 1.
+
+**Lesson:** A useful new metric is also a tempting hammer. The next instinct is to swing it at every nail, including ones it doesn't fit. Asking *"who consumes this number, and what decision does it drive?"* before deciding where to surface a metric is the discipline that catches misuse. RV's consumer is "executive looking at risk concentration." That's not the same audience as "CSM evaluating their performance," and the metric should respect the distinction.
+
+---
+
+## 19. Pillar decomposition fell out of linearity; visualization design followed the math
+
+**The discovery:** While strategizing dashboard visualizations, the user asked which option would best surface "where RV is being lost, by which pillar." I started reaching for treemaps (Finviz-style — beautiful for clustering but wrong for diagnosis). Stopped, looked at the math: under linear RV,
+
+    Unrealized = ARR × Σ_pillar (weight × (100 − pillar_score) / 100)
+
+This isn't an approximation; it's algebra. Each pillar has a *real, summable contribution* to the unrealized $ figure at every aggregate level. The visualization that displays this most clearly is a heatmap matrix: rows = aggregate units (regions/CSMs), cols = pillars, cells = $ unrealized to that pillar in that aggregate.
+
+**Why this matters:** the heatmap is *exactly* the metric, not a summary or an approximation. A VP scanning down the TH column to spot "TH is dragging EMEA" is reading the formula directly. That's a property linear RV gives us for free; quadratic and sigmoidal versions do not factor like this.
+
+**Lesson:** The right visualization isn't always the most elegant one. It's the one whose visual encoding maps directly to the underlying math. Treemap → "where do dollars cluster" (good for one question, wrong for another). Pillar heatmap → "where are dollars being lost and why" (the question we actually had). Ask "what does this chart's geometry mean mathematically?" — and pick the chart whose geometry IS the answer.
+
+**Process improvement:** before sketching dashboards, write down the math of the metric and ask "what does this expression *look like*?" Often the natural visualization is sitting right there in the formula's structure.
+
+---
+
+## 20. (template: add new entries here)

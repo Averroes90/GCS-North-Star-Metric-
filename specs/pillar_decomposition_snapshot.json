@@ -1,0 +1,262 @@
+{
+  "generated_at": "2026-05-05T19:11:11.335412Z",
+  "config_version": "v2.0",
+  "rv_formula": "linear",
+  "as_of_date": "2026-04-22",
+  "headline": {
+    "n_total": 766.0,
+    "n_scored": 730.0,
+    "n_grace": 36.0,
+    "total_arr": 305003400.0,
+    "scored_arr": 305003400.0,
+    "total_rv": 235122862.7,
+    "total_unrealized": 69880537.3,
+    "realization_rate": 0.7709,
+    "unrealized_cr": 19985991.57,
+    "unrealized_um": 19416224.34,
+    "unrealized_dm": 9219630.72,
+    "unrealized_th": 15896983.92,
+    "unrealized_floor": 5401633.33
+  },
+  "by_region": [
+    {
+      "region": "AMER",
+      "account_count": 524,
+      "book_arr": 186228200.0,
+      "book_rv": 133694064.4,
+      "scored_arr": 186228200.0,
+      "unrealized_total": 52534135.6,
+      "realization_rate": 0.7179,
+      "unrealized_cr": 16502062.44,
+      "unrealized_um": 16074756.42,
+      "unrealized_dm": 7325369.26,
+      "unrealized_th": 10313617.78,
+      "unrealized_floor": 2343233.03
+    },
+    {
+      "region": "EMEA",
+      "account_count": 169,
+      "book_arr": 100262300.0,
+      "book_rv": 86166425.7,
+      "scored_arr": 100262300.0,
+      "unrealized_total": 14095874.3,
+      "realization_rate": 0.8594,
+      "unrealized_cr": 2616006.66,
+      "unrealized_um": 2616741.96,
+      "unrealized_dm": 1545962.0,
+      "unrealized_th": 4585865.14,
+      "unrealized_floor": 2744837.37
+    },
+    {
+      "region": "APAC",
+      "account_count": 73,
+      "book_arr": 18512900.0,
+      "book_rv": 15262372.6,
+      "scored_arr": 18512900.0,
+      "unrealized_total": 3250527.4,
+      "realization_rate": 0.8244,
+      "unrealized_cr": 867922.47,
+      "unrealized_um": 724725.96,
+      "unrealized_dm": 348299.46,
+      "unrealized_th": 997501.0,
+      "unrealized_floor": 313562.93
+    }
+  ],
+  "by_segment": [
+    {
+      "segment": "Enterprise",
+      "account_count": 238,
+      "book_arr": 248487300.0,
+      "book_rv": 192766316.0,
+      "scored_arr": 248487300.0,
+      "unrealized_total": 55720984.0,
+      "realization_rate": 0.7758,
+      "unrealized_cr": 15918677.79,
+      "unrealized_um": 15668990.76,
+      "unrealized_dm": 6924448.56,
+      "unrealized_th": 12546249.24,
+      "unrealized_floor": 4696474.12
+    },
+    {
+      "segment": "Mid-Market",
+      "account_count": 528,
+      "book_arr": 56516100.0,
+      "book_rv": 42356546.7,
+      "scored_arr": 56516100.0,
+      "unrealized_total": 14159553.3,
+      "realization_rate": 0.7495,
+      "unrealized_cr": 4067313.78,
+      "unrealized_um": 3747233.58,
+      "unrealized_dm": 2295182.16,
+      "unrealized_th": 3350734.68,
+      "unrealized_floor": 705159.21
+    }
+  ],
+  "top_landmines": [
+    {
+      "account_id": "ACC-00047",
+      "industry": "Healthcare",
+      "rep_id": "CSM-010",
+      "arr_dollars": 8000000.0,
+      "rv_dollars": 2376000.0,
+      "unrealized": 5624000.0,
+      "avri_score": 29.7,
+      "avri_color": "red",
+      "floor_rule_triggered": false
+    },
+    {
+      "account_id": "ACC-00291",
+      "industry": "Government",
+      "rep_id": "CSM-019",
+      "arr_dollars": 7310200.0,
+      "rv_dollars": 2046856.0,
+      "unrealized": 5263344.0,
+      "avri_score": 28.0,
+      "avri_color": "red",
+      "floor_rule_triggered": false
+    },
+    {
+      "account_id": "ACC-00212",
+      "industry": "Tech",
+      "rep_id": "CSM-021",
+      "arr_dollars": 6225700.0,
+      "rv_dollars": 1643585.0,
+      "unrealized": 4582115.0,
+      "avri_score": 26.4,
+      "avri_color": "red",
+      "floor_rule_triggered": true
+    },
+    {
+      "account_id": "ACC-00226",
+      "industry": "Tech",
+      "rep_id": "CSM-023",
+      "arr_dollars": 8000000.0,
+      "rv_dollars": 4000000.0,
+      "unrealized": 4000000.0,
+      "avri_score": 50.0,
+      "avri_color": "yellow",
+      "floor_rule_triggered": true
+    },
+    {
+      "account_id": "ACC-00036",
+      "industry": "Financial Services",
+      "rep_id": "CSM-019",
+      "arr_dollars": 5023700.0,
+      "rv_dollars": 1798485.0,
+      "unrealized": 3225215.0,
+      "avri_score": 35.8,
+      "avri_color": "red",
+      "floor_rule_triggered": false
+    },
+    {
+      "account_id": "ACC-00218",
+      "industry": "Tech",
+      "rep_id": "CSM-044",
+      "arr_dollars": 3601000.0,
+      "rv_dollars": 446524.0,
+      "unrealized": 3154476.0,
+      "avri_score": 12.4,
+      "avri_color": "red",
+      "floor_rule_triggered": true
+    },
+    {
+      "account_id": "ACC-00202",
+      "industry": "Financial Services",
+      "rep_id": "CSM-012",
+      "arr_dollars": 3587500.0,
+      "rv_dollars": 699563.0,
+      "unrealized": 2887938.0,
+      "avri_score": 19.5,
+      "avri_color": "red",
+      "floor_rule_triggered": false
+    },
+    {
+      "account_id": "ACC-00132",
+      "industry": "Telecom",
+      "rep_id": "CSM-036",
+      "arr_dollars": 2436800.0,
+      "rv_dollars": 285106.0,
+      "unrealized": 2151694.0,
+      "avri_score": 11.7,
+      "avri_color": "red",
+      "floor_rule_triggered": true
+    },
+    {
+      "account_id": "ACC-00034",
+      "industry": "Retail",
+      "rep_id": "CSM-020",
+      "arr_dollars": 2393500.0,
+      "rv_dollars": 658213.0,
+      "unrealized": 1735288.0,
+      "avri_score": 27.5,
+      "avri_color": "red",
+      "floor_rule_triggered": true
+    },
+    {
+      "account_id": "ACC-00186",
+      "industry": "Manufacturing",
+      "rep_id": "CSM-020",
+      "arr_dollars": 1698500.0,
+      "rv_dollars": 324414.0,
+      "unrealized": 1374087.0,
+      "avri_score": 19.1,
+      "avri_color": "red",
+      "floor_rule_triggered": false
+    },
+    {
+      "account_id": "ACC-00096",
+      "industry": "Retail",
+      "rep_id": "CSM-020",
+      "arr_dollars": 2538000.0,
+      "rv_dollars": 1269000.0,
+      "unrealized": 1269000.0,
+      "avri_score": 50.0,
+      "avri_color": "yellow",
+      "floor_rule_triggered": true
+    },
+    {
+      "account_id": "ACC-00038",
+      "industry": "Manufacturing",
+      "rep_id": "CSM-015",
+      "arr_dollars": 1498700.0,
+      "rv_dollars": 247286.0,
+      "unrealized": 1251415.0,
+      "avri_score": 16.5,
+      "avri_color": "red",
+      "floor_rule_triggered": false
+    },
+    {
+      "account_id": "ACC-00269",
+      "industry": "Manufacturing",
+      "rep_id": "CSM-022",
+      "arr_dollars": 1095500.0,
+      "rv_dollars": 59157.0,
+      "unrealized": 1036343.0,
+      "avri_score": 5.4,
+      "avri_color": "red",
+      "floor_rule_triggered": true
+    },
+    {
+      "account_id": "ACC-00227",
+      "industry": "Retail",
+      "rep_id": "CSM-003",
+      "arr_dollars": 1832900.0,
+      "rv_dollars": 916450.0,
+      "unrealized": 916450.0,
+      "avri_score": 50.0,
+      "avri_color": "yellow",
+      "floor_rule_triggered": true
+    },
+    {
+      "account_id": "ACC-00833",
+      "industry": "Manufacturing",
+      "rep_id": "CSM-032",
+      "arr_dollars": 800000.0,
+      "rv_dollars": 90400.0,
+      "unrealized": 709600.0,
+      "avri_score": 11.3,
+      "avri_color": "red",
+      "floor_rule_triggered": true
+    }
+  ]
+}

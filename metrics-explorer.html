@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-<title>GCS North Star Metric, Concept Primer & Metrics Explorer</title>
+<title>GCS North Star Metric — AVRI + RV (v2.0)</title>
 <style>
   * { box-sizing: border-box; }
   :root {
@@ -71,9 +71,10 @@
   nav.tabs {
     background: var(--panel);
     border-bottom: 1px solid var(--border);
-    padding: 0 48px;
+    padding: 4px 48px 0;
     display: flex;
-    gap: 4px;
+    flex-wrap: wrap;
+    gap: 0 4px;
     position: sticky;
     top: 0;
     z-index: 10;
@@ -81,14 +82,15 @@
   nav.tabs button {
     background: none;
     border: none;
-    padding: 14px 18px;
-    font-size: 14px;
+    padding: 12px 14px;
+    font-size: 13.5px;
     font-weight: 500;
     color: var(--text-muted);
     cursor: pointer;
     border-bottom: 2px solid transparent;
     transition: all 0.15s ease;
     font-family: inherit;
+    white-space: nowrap;
   }
   nav.tabs button:hover { color: var(--text); }
   nav.tabs button.active {
@@ -438,6 +440,69 @@
     font-size: 13px;
     color: var(--text-soft);
   }
+  /* "How AVRI handles it" panel inside each edge card */
+  .edge-handling {
+    margin-top: 14px;
+    padding-top: 12px;
+    border-top: 1px dashed var(--border);
+  }
+  .edge-handling .eh-label {
+    font-size: 10px;
+    font-weight: 700;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    margin-bottom: 8px;
+  }
+  .eh-compare {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+    margin-bottom: 10px;
+  }
+  .eh-side {
+    border-radius: 6px;
+    padding: 10px 12px;
+    font-size: 12px;
+    line-height: 1.45;
+  }
+  .eh-side.naive   { background: #fef2f2; border: 1px solid #fecaca; color: #7f1d1d; }
+  .eh-side.avri    { background: #f0fdf4; border: 1px solid #bbf7d0; color: #14532d; }
+  .eh-side .eh-side-label {
+    font-size: 9.5px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    margin-bottom: 4px;
+    opacity: 0.75;
+  }
+  .eh-side strong { color: inherit; }
+  .eh-mechanism {
+    font-size: 12px;
+    color: var(--text-soft);
+    background: #f8fafc;
+    border-left: 3px solid var(--accent-2);
+    padding: 8px 12px;
+    border-radius: 4px;
+    margin-bottom: 8px;
+  }
+  .eh-mechanism .eh-mech-label {
+    font-size: 9.5px;
+    font-weight: 700;
+    color: var(--accent-2);
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    margin-bottom: 3px;
+  }
+  .eh-example {
+    font-size: 11.5px;
+    color: var(--text-muted);
+    font-family: var(--mono, ui-monospace, "SF Mono", monospace);
+  }
+  .eh-example strong {
+    color: var(--text-soft);
+    font-family: inherit;
+  }
 
   /* Takeaways */
   .takeaway {
@@ -473,6 +538,212 @@
     font-weight: 600;
     margin-left: 8px;
   }
+
+  /* AVRI vs CHS stories */
+  .crosstab-table {
+    border-collapse: separate;
+    border-spacing: 6px;
+    margin: 14px 0;
+    width: 100%;
+    max-width: 720px;
+  }
+  .crosstab-table th, .crosstab-table td {
+    padding: 14px 12px;
+    text-align: center;
+    border-radius: 6px;
+  }
+  .crosstab-table th {
+    color: #fff;
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    font-weight: 700;
+  }
+  .crosstab-table th.col-green   { background: var(--good); }
+  .crosstab-table th.col-yellow  { background: var(--warn); }
+  .crosstab-table th.col-red     { background: var(--bad); }
+  .crosstab-table th.col-onb     { background: #6366f1; }
+  .crosstab-table th.row-green   { background: var(--good); text-align: right; }
+  .crosstab-table th.row-yellow  { background: var(--warn); text-align: right; }
+  .crosstab-table th.row-red     { background: var(--bad); text-align: right; }
+  .crosstab-table th.row-onb     { background: #6366f1; text-align: right; }
+  .crosstab-table td.diag {
+    background: #f1f5f9;
+    border: 1.5px solid #cbd5e1;
+  }
+  .crosstab-table td.disagree {
+    background: #fff7ed;
+    border: 1.5px solid #fdba74;
+  }
+  .crosstab-table td.disagree.strong {
+    background: #fed7aa;
+    border-color: #ea580c;
+  }
+  .crosstab-table td .ct-n {
+    font-size: 22px; font-weight: 700; color: #0f172a; line-height: 1.0;
+  }
+  .crosstab-table td .ct-arr {
+    font-size: 11px; color: #64748b; margin-top: 3px;
+  }
+  .crosstab-table td .ct-tag {
+    font-size: 9.5px; color: var(--accent-2); text-transform: uppercase;
+    letter-spacing: 0.04em; font-weight: 700; margin-top: 5px;
+  }
+
+  .case-card {
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 22px 26px;
+    margin-bottom: 18px;
+    border-left: 4px solid var(--accent-2);
+  }
+  .case-card .case-header {
+    display: grid;
+    grid-template-columns: 1fr auto;
+    align-items: baseline;
+    gap: 14px;
+    margin-bottom: 4px;
+  }
+  .case-card h4 {
+    margin: 0;
+    font-size: 18px;
+    font-weight: 700;
+    color: var(--accent);
+    font-family: ui-monospace, monospace;
+  }
+  .case-card .case-meta {
+    font-size: 13px;
+    color: var(--text-muted);
+  }
+  .case-card .case-tag {
+    display: inline-block;
+    background: var(--accent-2);
+    color: #fff;
+    padding: 2px 10px;
+    border-radius: 12px;
+    font-size: 10.5px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    margin-bottom: 12px;
+  }
+  .case-compare {
+    display: grid;
+    grid-template-columns: 1fr 24px 1fr;
+    gap: 12px;
+    align-items: stretch;
+    margin: 14px 0;
+  }
+  .case-side {
+    background: var(--panel-alt);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 12px 14px;
+  }
+  .case-side .side-label {
+    font-size: 10px;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    font-weight: 700;
+    color: var(--text-muted);
+    margin-bottom: 8px;
+  }
+  .case-side .side-score {
+    font-size: 28px;
+    font-weight: 700;
+    line-height: 1.0;
+  }
+  .case-side .side-score.green  { color: var(--good); }
+  .case-side .side-score.yellow { color: var(--warn); }
+  .case-side .side-score.red    { color: var(--bad); }
+  .case-side .side-color-tag {
+    display: inline-block;
+    margin-top: 6px;
+    padding: 2px 10px;
+    border-radius: 10px;
+    font-size: 11px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+  }
+  .case-side .side-color-tag.green  { background: #d1fae5; color: #065f46; }
+  .case-side .side-color-tag.yellow { background: #fef3c7; color: #92400e; }
+  .case-side .side-color-tag.red    { background: #fee2e2; color: #991b1b; }
+  .case-side .side-detail {
+    margin-top: 10px;
+    font-size: 12px;
+    color: var(--text-soft);
+    line-height: 1.5;
+  }
+  .case-arrow {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--accent-2);
+    font-size: 20px;
+    font-weight: 700;
+  }
+  .case-pillars {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 8px;
+    margin-top: 10px;
+    padding: 10px 12px;
+    background: var(--panel-alt);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+  }
+  .case-pillar {
+    text-align: center;
+  }
+  .case-pillar .p-label {
+    font-size: 10px;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    font-weight: 700;
+  }
+  .case-pillar .p-value {
+    font-size: 18px;
+    font-weight: 700;
+    color: var(--text);
+    margin-top: 2px;
+  }
+  .case-pillar .p-bar {
+    height: 4px;
+    background: var(--border);
+    border-radius: 2px;
+    margin-top: 4px;
+    overflow: hidden;
+  }
+  .case-pillar .p-bar .fill {
+    height: 100%;
+    background: var(--accent);
+  }
+  .case-pillar.cr .p-bar .fill { background: var(--dim-bookings); }
+  .case-pillar.um .p-bar .fill { background: var(--dim-usage); }
+  .case-pillar.dm .p-bar .fill { background: var(--dim-deploy); }
+  .case-pillar.th .p-bar .fill { background: var(--dim-tech); }
+  .case-narrative {
+    background: #fff7ed;
+    border-left: 3px solid var(--accent-2);
+    padding: 12px 16px;
+    border-radius: 4px;
+    margin-top: 12px;
+    font-size: 13.5px;
+    color: var(--text-soft);
+    line-height: 1.6;
+  }
+  .case-narrative .narrative-label {
+    font-size: 10px;
+    color: var(--accent-2);
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    font-weight: 700;
+    margin-bottom: 4px;
+  }
+  .case-narrative strong { color: var(--text); }
 
   /* Architecture diagram */
   .arch-wrap {
@@ -1379,9 +1650,11 @@
   <button class="tab-btn" data-tab="concepts">Key Concepts</button>
   <button class="tab-btn" data-tab="edge">Edge Cases</button>
   <button class="tab-btn" data-tab="avri">AVRI Spec</button>
+  <button class="tab-btn" data-tab="rv">Realized Value <span style="background:#fb923c;color:white;font-size:9px;padding:1px 5px;border-radius:8px;margin-left:4px;font-weight:700;">v2</span></button>
   <button class="tab-btn" data-tab="data">Data Spec</button>
   <button class="tab-btn" data-tab="flow">Schema → Metric</button>
   <button class="tab-btn" data-tab="defending">Defending Choices</button>
+  <button class="tab-btn" data-tab="stories">AVRI vs CHS Stories</button>
   <button class="tab-btn" data-tab="scripts">Scripts &amp; Run Guide</button>
   <button class="tab-btn" data-tab="architecture">How It Connects</button>
   <button class="tab-btn" data-tab="takeaways">Takeaways</button>
@@ -1397,7 +1670,7 @@
 
 <div class="map-banner">
       <div class="pulse-dot"></div>
-      <div class="text"><strong>All five phases now have shippable artifacts.</strong> Pipeline live with DQ tests. Dashboard running. Deck built (.pptx + .pdf). Demo script + Q&amp;A prep ready. Last steps: edit slide 1 tagline in your voice, run the DQ test suite locally to confirm green, push to GitHub, send the link.</div>
+      <div class="text"><strong>v1.3 complete and tested.</strong> 36 accounts moved from miscoded Red into Onboarding. 24 of 24 DQ tests pass. Dashboard handles the new Onboarding color cleanly. Ready to push to GitHub. Only the live presentation remains.</div>
     </div>
 
     <!-- Phase tabs -->
@@ -1417,7 +1690,7 @@
       <button class="phase-bar-item" data-phase="p3">
         <div class="ph-num">Phase 3</div>
         <div class="ph-title">Metric Pipeline</div>
-        <div class="ph-status">5 of 5 complete</div>
+        <div class="ph-status">v1.3 complete · 24 of 24 tests pass</div>
         <div class="ph-progress"><div class="fill" style="width:100%"></div></div>
       </button>
       <button class="phase-bar-item" data-phase="p4">
@@ -1426,11 +1699,17 @@
         <div class="ph-status">4 of 4 built</div>
         <div class="ph-progress"><div class="fill" style="width:100%"></div></div>
       </button>
-      <button class="phase-bar-item active you-are-here" data-phase="p5">
+      <button class="phase-bar-item" data-phase="p5">
         <div class="ph-num">Phase 5</div>
         <div class="ph-title">Presentation</div>
-        <div class="ph-status">3 of 5 complete</div>
-        <div class="ph-progress"><div class="fill" style="width:60%"></div></div>
+        <div class="ph-status">deck v1 → v2 (8 slides)</div>
+        <div class="ph-progress"><div class="fill" style="width:100%"></div></div>
+      </button>
+      <button class="phase-bar-item active you-are-here" data-phase="p6">
+        <div class="ph-num">Phase 6</div>
+        <div class="ph-title">v2 · Realized Value</div>
+        <div class="ph-status">RV + calibration + heatmap · 29 of 29 tests pass</div>
+        <div class="ph-progress"><div class="fill" style="width:100%"></div></div>
       </button>
     </div>
 
@@ -1856,33 +2135,66 @@
           </div>
         </div>
 
-        <div class="step-card you-are-here">
+        <div class="step-card">
           <div class="step-head" data-toggle>
             <div class="step-num">3.4</div>
-            <div class="step-status-icon in-progress">⟳</div>
+            <div class="step-status-icon done">✓</div>
             <div>
-              <div class="step-title">AVRI v1, refined post-inspection</div>
-              <div class="step-summary">Pipeline now filters to in-scope accounts only. Re-run pending; spec drafted.</div>
+              <div class="step-title">AVRI v1.0–v1.2 refinements</div>
+              <div class="step-summary">Scope filter, UM level guard, contract context columns added.</div>
             </div>
             <div class="step-toggle">›</div>
           </div>
           <div class="step-body">
             <div class="step-section">
-              <div class="label">v1 changes</div>
+              <div class="label">Refinement history</div>
               <ul>
-                <li><strong>Scope filter:</strong> AVRI only computed for accounts with ≥1 active contract on as-of date (was: every row in <code>accounts</code>).</li>
-                <li>Same filter applied to <code>metrics_existing_account</code> for apples-to-apples comparison.</li>
-                <li>No formula changes, pillars, weights, RAG thresholds, floor rule all retained from v0.</li>
+                <li><strong>v1.0 scope filter:</strong> only score accounts with ≥1 active contract on as-of date (was: every row in <code>accounts</code>).</li>
+                <li><strong>v1.1 UM level guard:</strong> if total annual usage &lt; 5% of commit, UM forces to 0 (prevents shelfware accounts from getting UM=100 via tiny÷tiny).</li>
+                <li><strong>v1.2 contract context:</strong> tenure_days, days_to_renewal, cold_start_flag, renewal_imminent_flag surfaced as output columns.</li>
               </ul>
             </div>
             <div class="step-section">
-              <div class="label">User action</div>
-              <p>Re-run <code>python run_pipeline.py</code> then <code>python inspection.py</code> on your machine.</p>
+              <div class="label">Open in</div>
+              <a class="step-link ext" href="specs/metric_v1.md" target="_blank">specs/metric_v1.md §1–§3</a>
+            </div>
+          </div>
+        </div>
+
+        <div class="step-card">
+          <div class="step-head" data-toggle>
+            <div class="step-num">3.6</div>
+            <div class="step-status-icon done">✓</div>
+            <div>
+              <div class="step-title">v1.3 — Activation Grace Period (complete)</div>
+              <div class="step-summary">Pipeline re-run, 24/24 tests pass, 36 accounts correctly moved from Red to Onboarding. Dashboard verified.</div>
+            </div>
+            <div class="step-toggle">›</div>
+          </div>
+          <div class="step-body">
+            <div class="step-section">
+              <div class="label">v1.3 changes</div>
+              <ul>
+                <li>A newly-signed contract is excluded from CR's denominator until <strong>cumulative usage ≥ 15% of monthly commit</strong> OR <strong>90 days have elapsed</strong> (whichever first).</li>
+                <li>Accounts with all contracts in grace get NULL <code>avri_score</code> and a new <code>onboarding</code> RAG color (vs being miscoded Red).</li>
+                <li>New columns: <code>total_contracts</code>, <code>activated_contracts</code>, <code>grace_contracts</code>, <code>has_grace_contract</code>, <code>all_contracts_in_grace</code>.</li>
+                <li>Rollups (CSM, region) gain <code>onboarding_count</code> and <code>scored_account_count</code>.</li>
+                <li>DQ tests: 2 new pytest assertions covering the grace logic.</li>
+                <li>Deck slide 4: footnote callout added for the v1.3 grace period.</li>
+              </ul>
+            </div>
+            <div class="step-section">
+              <div class="label">Why this fix</div>
+              <p>v1.2 penalized newly-signed contracts via cold-start (the new contract instantly inflated CR's denominator before consumption could ramp). A CSM landing $2M of new ARR could see their dollar-weighted AVRI <em>drop</em>. v1.3 makes AVRI neutral on the act of signing — bookings stays measured commercially via ARR; AVRI never penalizes the ramp window.</p>
+            </div>
+            <div class="step-section">
+              <div class="label">User action — re-run on your machine</div>
+              <p style="font-family:ui-monospace,monospace; background:#0f172a; color:#e2e8f0; padding:8px 12px; border-radius:4px; font-size:12.5px;">cd pipeline_and_tests<br>python run_pipeline.py<br>pytest -v<br>python inspection.py</p>
             </div>
             <div class="step-section">
               <div class="label">Open in</div>
-              <a class="step-link ext" href="specs/metric_v1.md" target="_blank">specs/metric_v1.md</a>
-              <a class="step-link ext" href="specs/lessons_learned.md" target="_blank">lessons_learned.md</a>
+              <a class="step-link ext" href="specs/metric_v1.md" target="_blank">metric_v1.md §4</a>
+              <a class="step-link ext" href="specs/lessons_learned.md" target="_blank">lessons_learned.md #15</a>
             </div>
           </div>
         </div>
@@ -2031,7 +2343,7 @@
           </div>
         </div>
 
-        <div class="step-card you-are-here">
+        <div class="step-card">
           <div class="step-head" data-toggle>
             <div class="step-num">5.3</div>
             <div class="step-status-icon done">✓</div>
@@ -2050,27 +2362,233 @@
         <div class="step-card">
           <div class="step-head" data-toggle>
             <div class="step-num">5.4</div>
-            <div class="step-status-icon pending">○</div>
+            <div class="step-status-icon done">✓</div>
             <div>
-              <div class="step-title">Final repo polish</div>
-              <div class="step-summary">Remove the temporary deck-build folder, tidy READMEs, verify README structure matches brief's required folders.</div>
+              <div class="step-title">Final repo polish + AI-tell scrub</div>
+              <div class="step-summary">456 em-dashes scrubbed across 13 files. .gitignore added. REVIEW_GUIDE.md created. README updated to reflect final state.</div>
             </div>
             <div class="step-toggle">›</div>
           </div>
-          <div class="step-body"><div class="step-section"><p>Brief requires GitHub repo with: /data_generation, /specs, /pipeline_and_tests, /dashboard, README, PDF deck. All present, just polish before pushing.</p></div></div>
+          <div class="step-body"><div class="step-section"><p>All brief-required folders present (/data_generation, /specs, /pipeline_and_tests, /dashboard) plus README and PDF deck at root.</p></div></div>
         </div>
 
         <div class="step-card">
           <div class="step-head" data-toggle>
             <div class="step-num">5.5</div>
-            <div class="step-status-icon pending">○</div>
+            <div class="step-status-icon done">✓</div>
             <div>
-              <div class="step-title">Submission</div>
-              <div class="step-summary">Push to GitHub, send link to Saranya.</div>
+              <div class="step-title">Repo pushed to GitHub</div>
+              <div class="step-summary">Submission link sent to recruiter. End of build phase.</div>
             </div>
             <div class="step-toggle">›</div>
           </div>
-          <div class="step-body"><div class="step-section"><p>Final hand-off.</p></div></div>
+          <div class="step-body"><div class="step-section"><p>Hand-off complete. The repo is now the artifact that travels into the interview.</p></div></div>
+        </div>
+
+        <div class="step-card you-are-here">
+          <div class="step-head" data-toggle>
+            <div class="step-num">5.6</div>
+            <div class="step-status-icon in-progress">⟳</div>
+            <div>
+              <div class="step-title">Live presentation (the only thing left)</div>
+              <div class="step-summary">60 minutes total: ~35 presenting, ~25 Q&amp;A. Rehearse against the demo script the night before; walk in confident.</div>
+            </div>
+            <div class="step-toggle">›</div>
+          </div>
+          <div class="step-body">
+            <div class="step-section">
+              <div class="label">Pre-flight (30 minutes before)</div>
+              <ul>
+                <li>Open <code>AVRI_Deck.pptx</code> in presenter mode (or PDF).</li>
+                <li>Open second tab: <code>metrics-explorer.html</code> for fallback Q&amp;A reference.</li>
+                <li>Run <code>streamlit run app.py</code> from <code>dashboard/</code>. Confirm Executive Overview loads.</li>
+                <li>In Streamlit: open Account Drill-down → ACC-00202 from the deck-story picker. Confirm time series renders.</li>
+                <li>In Streamlit: At-Risk Renewals tab. Note the current $ at risk figure (currently $10.3M / 20 accounts).</li>
+                <li>Half-screen the deck and dashboard side by side.</li>
+              </ul>
+            </div>
+            <div class="step-section">
+              <div class="label">Three deck-story accounts to remember cold</div>
+              <ul>
+                <li><strong>ACC-00202</strong>: Shelfware example. $3.5M FS, 0 active days, naive CHS=40 vs AVRI=19.5.</li>
+                <li><strong>ACC-00226</strong>: Floor rule example. $8M Tech, 130% util, TH=15. Without rule AVRI=86; with rule capped at 50.</li>
+                <li><strong>ACC-00876</strong>: Overage rewarded. Manufacturing $246K. Naive CHS=57 yellow vs AVRI=92 green.</li>
+              </ul>
+            </div>
+            <div class="step-section">
+              <div class="label">Open in</div>
+              <a class="step-link ext" href="specs/demo_script_and_qa.md" target="_blank">demo_script_and_qa.md</a>
+              <button class="step-link tab" data-jump-tab="defending">Defending Choices tab</button>
+              <a class="step-link ext" href="AVRI_Deck.pptx" target="_blank">AVRI_Deck.pptx</a>
+              <a class="step-link ext" href="AVRI_Deck.pdf" target="_blank">AVRI_Deck.pdf</a>
+            </div>
+            <div class="step-section">
+              <div class="label">Final 5-minute ritual</div>
+              <p>Re-read your tagline aloud. Name the three deck stories from memory. Look at ACC-00202's time series for 10 seconds (burns the visual into your head). Three deep breaths. Smile and start.</p>
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+
+    <!-- ============================ PHASE 6 (v2.0) ============================ -->
+    <div class="phase-content" id="content-p6" style="display:none">
+      <h3 style="margin-top:0">Phase 6 · v2.0 Realized Value</h3>
+      <p class="lead" style="margin-bottom:14px">Adds the scale dimension via Realized Value (RV), centralizes calibration into a single JSON config, and introduces pillar-decomposition diagnostics. AVRI scoring itself is unchanged from v1.3; v2 adds a layer above.</p>
+
+      <div class="step-list">
+
+        <div class="step-card">
+          <div class="step-head" data-toggle>
+            <div class="step-num">6.1</div>
+            <div class="step-status-icon done">✓</div>
+            <div>
+              <div class="step-title">Scale-vs-quality tension surfaced (lessons_learned #16)</div>
+              <div class="step-summary">User pushback: "do two CSMs with same % usage but different book sizes get distinguished?" caught a buried interpretive choice.</div>
+            </div>
+            <div class="step-toggle">›</div>
+          </div>
+          <div class="step-body">
+            <div class="step-section">
+              <div class="label">What changed in thinking</div>
+              <p>v1.3 operationalized "bookings" (one of the brief's four dimensions) as Commit Realization — a ratio. That captures bookings <em>quality</em> but not <em>scale</em>. The choice was buried under "by design"; surfacing it produced the v2 metric architecture.</p>
+            </div>
+            <div class="step-section">
+              <div class="label">Resolution</div>
+              <p>Add RV alongside AVRI, not replacing it. Quality stays in AVRI (segment-fair, comp-grade). Scale lives in RV (executive-grade, $-grade). Three uses, three consumers, one engine.</p>
+            </div>
+          </div>
+        </div>
+
+        <div class="step-card">
+          <div class="step-head" data-toggle>
+            <div class="step-num">6.2</div>
+            <div class="step-status-icon done">✓</div>
+            <div>
+              <div class="step-title">Linear vs quadratic — chose linear after honest review</div>
+              <div class="step-summary">Started with quadratic (kinetic-energy analog), pushed back on it after user challenge, landed on linear with three concrete defenses.</div>
+            </div>
+            <div class="step-toggle">›</div>
+          </div>
+          <div class="step-body">
+            <div class="step-section">
+              <div class="label">Why linear won</div>
+              <p>(1) Decomposes cleanly across pillars and aggregates — quadratic doesn't factor; (2) doesn't pretend to know a curvature we can't justify without renewal data; (3) is the conservative starting point, swappable in v3.</p>
+            </div>
+            <div class="step-section">
+              <div class="label">Lesson</div>
+              <p>Captured in <code>lessons_learned.md</code> #17. The KE analogy was a story device, not a derivation. The user's "are you sure?" question is what broke the spell.</p>
+            </div>
+          </div>
+        </div>
+
+        <div class="step-card">
+          <div class="step-head" data-toggle>
+            <div class="step-num">6.3</div>
+            <div class="step-status-icon done">✓</div>
+            <div>
+              <div class="step-title">core/ module — single source of truth</div>
+              <div class="step-summary">All calibratable parameters centralized in <code>core/config_v1.json</code>; scoring math in <code>core/scoring.py</code>; both pipeline and dashboard consume them.</div>
+            </div>
+            <div class="step-toggle">›</div>
+          </div>
+          <div class="step-body">
+            <div class="step-section">
+              <div class="label">Files</div>
+              <ul>
+                <li><code>core/config_v1.json</code> — every weight, threshold, curve breakpoint</li>
+                <li><code>core/scoring.py</code> — pure functions: pillar scores, AVRI, RV, decomposition</li>
+                <li><code>core/build_facts.py</code> — local fact reconstruction for tests</li>
+                <li><code>core/test_scoring.py</code> — 20 invariant tests + golden snapshot</li>
+              </ul>
+            </div>
+            <div class="step-section">
+              <div class="label">Why this matters for the panel</div>
+              <p>Demonstrates that no number in the metric is buried magic. Every threshold is named, located in one file, and visible in the dashboard's Calibration tab. Production runs locked defaults; the sandbox is the transparency artifact.</p>
+            </div>
+          </div>
+        </div>
+
+        <div class="step-card">
+          <div class="step-head" data-toggle>
+            <div class="step-num">6.4</div>
+            <div class="step-status-icon done">✓</div>
+            <div>
+              <div class="step-title">Pipeline + 5 new DQ tests (24 → 29)</div>
+              <div class="step-summary">SQL pipeline materializes <code>rv_dollars</code> + 5 pillar-attribution columns at account level; rollups carry <code>book_rv_dollars</code> + <code>realization_rate</code>.</div>
+            </div>
+            <div class="step-toggle">›</div>
+          </div>
+          <div class="step-body">
+            <div class="step-section">
+              <div class="label">New tests</div>
+              <p><code>TestRealizedValue</code> class verifies: RV = 0 for grace accounts; pillar decomposition sums to (ARR − RV) within $1; CSM/region rollup totals match account-level totals; realization rate stays in 0.5–0.95 sanity band.</p>
+            </div>
+          </div>
+        </div>
+
+        <div class="step-card">
+          <div class="step-head" data-toggle>
+            <div class="step-num">6.5</div>
+            <div class="step-status-icon done">✓</div>
+            <div>
+              <div class="step-title">Dashboard restructure — Realized Value landing + Calibration sandbox</div>
+              <div class="step-summary">Realized Value tab becomes the new landing page (headline + pillar heatmap + drill). Calibration tab provides live what-if across all five tabs.</div>
+            </div>
+            <div class="step-toggle">›</div>
+          </div>
+          <div class="step-body">
+            <div class="step-section">
+              <div class="label">5-tab structure</div>
+              <p>Realized Value (NEW landing) → AVRI vs CHS → CSM Detail → At-Risk Renewals → Calibration (NEW). Existing tabs refactored to read scores via <code>core/scoring.py</code>.</p>
+            </div>
+          </div>
+        </div>
+
+        <div class="step-card">
+          <div class="step-head" data-toggle>
+            <div class="step-num">6.6</div>
+            <div class="step-status-icon done">✓</div>
+            <div>
+              <div class="step-title">Deck — slide 5 inserted (8 slides total)</div>
+              <div class="step-summary">New "Quality × Scale = Realized Value" slide between AVRI Proposal and Proof. Linear formula, headline stacked bar, pillar mini-table, three-uses callout.</div>
+            </div>
+            <div class="step-toggle">›</div>
+          </div>
+          <div class="step-body">
+            <div class="step-section">
+              <div class="label">Slide map (v2)</div>
+              <ol>
+                <li>Cover</li>
+                <li>The Problem (TCV → ARR + consumption)</li>
+                <li>The Gap (metrics zoo + AVRI×CHS crosstab)</li>
+                <li>AVRI — quality of execution</li>
+                <li><strong>Quality × Scale = Realized Value (NEW)</strong></li>
+                <li>Proof — three disagreements (case cards now show RV/unrealized $)</li>
+                <li>Retrospective + v3 roadmap</li>
+                <li>Appendix · Edge case handling matrix</li>
+              </ol>
+            </div>
+          </div>
+        </div>
+
+        <div class="step-card">
+          <div class="step-head" data-toggle>
+            <div class="step-num">6.7</div>
+            <div class="step-status-icon done">✓</div>
+            <div>
+              <div class="step-title">Lobby + specs + READMEs refreshed</div>
+              <div class="step-summary">New Realized Value tab, AVRI Spec forward-pointer, Defending Choices entries, Project Map Phase 6 (this!), all READMEs and v0/v1 specs annotated.</div>
+            </div>
+            <div class="step-toggle">›</div>
+          </div>
+          <div class="step-body">
+            <div class="step-section">
+              <div class="label">Specs</div>
+              <p><code>metric_v2.md</code> (new), <code>lessons_learned.md</code> entries 16–19, <code>deck_outline.md</code> (8-slide map), <code>demo_script_and_qa.md</code> (Q13–Q15 added).</p>
+            </div>
+          </div>
         </div>
 
       </div>
@@ -2094,6 +2612,10 @@
     <p class="lead">
       Read Four Dimensions first, everything else depends on those definitions. Then open the Metrics Explorer and sort/filter to pressure-test any metric you're considering. Key Concepts is the "why it's true" layer for anything the interview panel might challenge. Edge Cases are the specific traps your metric design must handle.
     </p>
+
+    <div style="background:#fff7ed; border-left:4px solid #fb923c; border-radius:6px; padding:14px 18px; margin-top:18px;">
+      <strong style="color:#9a3412;">v2.0 update:</strong> The proposed metric architecture is now two complementary signals, not one. <a href="#" data-tab="avri" style="color:#9a3412; font-weight:700;">AVRI</a> measures quality of execution; <a href="#" data-tab="rv" style="color:#9a3412; font-weight:700;">Realized Value (RV)</a> measures dollars at stake. They live on the same dashboard, never collapse into a single comp metric. See the <a href="#" data-tab="rv" style="color:#9a3412; font-weight:700;">Realized Value tab</a> for the math, decomposition, and rationale.
+    </div>
   </section>
 
   <!-- FOUR DIMENSIONS -->
@@ -2121,6 +2643,10 @@
         <div class="field">
           <div class="field-label">Pitfall</div>
           <div class="field-body">Rewarding this alone (the old TCV world) incentivizes over-selling and shelfware.</div>
+        </div>
+        <div class="field" style="background:#fff7ed; border-left:3px solid #fb923c; padding:8px 12px; border-radius:4px;">
+          <div class="field-label" style="color:#9a3412;">v2.0 treatment</div>
+          <div class="field-body">Operationalized two ways. <strong>Quality:</strong> Commit Realization (CR) pillar — measures whether bookings are being consumed. <strong>Scale:</strong> <a href="#" data-tab="rv" style="color:#9a3412; font-weight:700;">Realized Value (RV)</a> — composes ARR with AVRI to surface dollars at stake. Both belong on the dashboard; neither replaces the other.</div>
         </div>
       </div>
 
@@ -2354,31 +2880,145 @@
         <p><strong>Pattern:</strong> Burns 90% of annual credits in Month 1, then near-zero.</p>
         <p><strong>What naive metrics miss:</strong> Annual utilization looks 100%, "fully realized." Raw burn-down looks healthy.</p>
         <p><strong>What the North Star must capture:</strong> Negative trend derivative over the last 6–9 months. A momentum/trend component penalizes this even when level looks fine.</p>
+
+        <div class="edge-handling">
+          <div class="eh-label">How AVRI handles it</div>
+          <div class="eh-compare">
+            <div class="eh-side naive">
+              <div class="eh-side-label">Naive CHS</div>
+              Sees recent <strong>health color still green</strong> from the burst period and an ARR component near full. <strong>Hedges to Yellow</strong>, can even stay Green.
+            </div>
+            <div class="eh-side avri">
+              <div class="eh-side-label">AVRI</div>
+              <strong>UM level guard</strong> fires when 90-day usage ÷ annual baseline collapses. <strong>CR window-based</strong> (90-day, not annual) catches the drop. <strong>Verdict: Red.</strong>
+            </div>
+          </div>
+          <div class="eh-mechanism">
+            <div class="eh-mech-label">Mechanism</div>
+            <strong>UM</strong> = 90-day avg ÷ 12-month baseline, with a <strong>level guard that zeros UM</strong> if cumulative annual usage falls below 5% of commit. <strong>CR</strong> uses a 90-day window, not annual cumulative — so a Month-1 burst doesn't carry forever.
+          </div>
+          <div class="eh-example">
+            <strong>Example:</strong> ACC-00193 · Government · $343K ARR · CHS 48 (yellow) · AVRI 17 (red) · UM=0, CR=0.4 — pillars catch it.
+          </div>
+        </div>
       </div>
+
       <div class="edge-card">
         <h5>Shelfware <span class="pct">~10% of accounts</span></h5>
         <p><strong>Pattern:</strong> Paid high <code>annual_commit_dollars</code>, but <code>Daily_Usage_Logs</code> are empty.</p>
         <p><strong>What naive metrics miss:</strong> ARR looks great. TCV looks great. Everything commercial looks great.</p>
         <p><strong>What the North Star must capture:</strong> Deployment + Usage components collapse. A floor rule on Usage should drop the composite score sharply, regardless of Bookings strength.</p>
+
+        <div class="edge-handling">
+          <div class="eh-label">How AVRI handles it</div>
+          <div class="eh-compare">
+            <div class="eh-side naive">
+              <div class="eh-side-label">Naive CHS</div>
+              Composite includes the ARR component (often 30%+ weight). High ARR alone can push the score into the 30–50 range — looks like a <strong>"watch" account</strong>, not a renewal emergency.
+            </div>
+            <div class="eh-side avri">
+              <div class="eh-side-label">AVRI</div>
+              ARR is <strong>not a pillar</strong>. <strong>Three of four pillars collapse</strong> (CR≈0, UM≈0, DM≈0). Even a perfect TH pulls AVRI to ~20. <strong>Verdict: deep Red.</strong>
+            </div>
+          </div>
+          <div class="eh-mechanism">
+            <div class="eh-mech-label">Mechanism</div>
+            AVRI deliberately <strong>excludes ARR from scoring</strong>: dollars don't equal value realization. The structural pillar collapse is the signal. CR's piecewise penalty (linear from 0 to 50% util) does the heavy lifting.
+          </div>
+          <div class="eh-example">
+            <strong>Example:</strong> ACC-00202 · Financial Services · $3.5M ARR · 0 active days · CHS 40 (yellow) · AVRI 19.5 (red) — a $3.5M renewal landmine CHS would only "watch."
+          </div>
+        </div>
       </div>
+
       <div class="edge-card">
         <h5>Consistent Overages <span class="pct">~15% of accounts</span></h5>
         <p><strong>Pattern:</strong> Consistently consume 120%+ of included monthly compute credits.</p>
         <p><strong>What naive metrics miss:</strong> Utilization &gt; 100% looks "broken" to a naive cap. Burn rate alarms fire.</p>
         <p><strong>What the North Star must capture:</strong> This is a <em>positive</em> signal (product stickiness, expansion candidate), not a penalty. Metric must distinguish "over-consumption against commit" from "spike-and-drop", both involve high burn, opposite meanings.</p>
+
+        <div class="edge-handling">
+          <div class="eh-label">How AVRI handles it</div>
+          <div class="eh-compare">
+            <div class="eh-side naive">
+              <div class="eh-side-label">Naive CHS</div>
+              Caps utilization at 100% or penalizes anything above it. A 130%-util account scores <strong>Yellow</strong> and the CSM is told to "manage burn rate" — exactly wrong for an upsell candidate.
+            </div>
+            <div class="eh-side avri">
+              <div class="eh-side-label">AVRI</div>
+              <strong>CR is piecewise</strong>: 50–110% util = full credit (sweet zone). 110–150% = gentle decay. <strong>Overage stays Green</strong>; capacity-expansion flag exposed separately.
+            </div>
+          </div>
+          <div class="eh-mechanism">
+            <div class="eh-mech-label">Mechanism</div>
+            <strong>CR(util)</strong> = 0 below 10%, linear up to 100 at 50%, plateau at 100 from 50%–110%, gentle linear decay to 70 at 150%, hard zero above 200%. The plateau is what lets AVRI reward — not punish — engaged customers.
+          </div>
+          <div class="eh-example">
+            <strong>Example:</strong> ACC-00010 · Government · $552K ARR · 130% util · CHS 58 (yellow) · AVRI 92 (green). Routed to expansion conversation, not at-risk pile.
+          </div>
+        </div>
       </div>
+
       <div class="edge-card">
-        <h5>Mid-Year Expansions</h5>
+        <h5>Mid-Year Expansions <span class="pct">~5% of accounts</span></h5>
         <p><strong>Pattern:</strong> Second, larger contract signed mid-year, overlapping the first.</p>
         <p><strong>What naive metrics miss:</strong> Which contract do you attribute usage to? Do you double-count commit dollars? What start date does the "lifecycle" use?</p>
         <p><strong>What the North Star must capture:</strong> Metric logic must define contract precedence (e.g., take the most recent, or sum active commits in the overlap window). Document this explicitly in the spec.</p>
+
+        <div class="edge-handling">
+          <div class="eh-label">How AVRI handles it</div>
+          <div class="eh-compare">
+            <div class="eh-side naive">
+              <div class="eh-side-label">Naive CHS</div>
+              Often takes the <strong>latest contract only</strong> (loses the original commit) <em>or</em> sums both regardless of date overlap (<strong>double-counts</strong> the overlap window). Either choice corrupts util ratios.
+            </div>
+            <div class="eh-side avri">
+              <div class="eh-side-label">AVRI</div>
+              At any point in time, denominator = <strong>SUM of active commits</strong> for any contract whose date range covers that point. Overlap windows aggregate correctly without double-counting.
+            </div>
+          </div>
+          <div class="eh-mechanism">
+            <div class="eh-mech-label">Mechanism</div>
+            Pipeline-level: the <code>contract_consumption</code> CTE pro-rates each contract's monthly commit by the days the contract was active in the 90-day window. Multiple active contracts sum. v1.3 grace period excludes activations &lt;15% used or &lt;90 days old, so a fresh expansion doesn't tank CR.
+          </div>
+          <div class="eh-example">
+            <strong>Example:</strong> ~50 accounts in <code>contracts</code> table have a second contract with overlapping date ranges (≥30-day overlap). DQ test <code>test_contract_overlap_detected</code> verifies the count.
+          </div>
+        </div>
       </div>
+
       <div class="edge-card">
-        <h5>Orphaned / Rogue Usage</h5>
+        <h5>Orphaned / Rogue Usage <span class="pct">~300 log rows</span></h5>
         <p><strong>Pattern:</strong> <code>account_id</code> in usage logs doesn't exist in Accounts, or usage falls outside active contract dates.</p>
         <p><strong>What naive metrics miss:</strong> Silently inflates usage. Corrupts CSM-level rollups.</p>
         <p><strong>What the North Star must capture:</strong> Pipeline must flag and quarantine these records, never silently drop them. Data quality test is mandatory; the metric itself should expose a "quarantine volume" diagnostic.</p>
+
+        <div class="edge-handling">
+          <div class="eh-label">How AVRI handles it</div>
+          <div class="eh-compare">
+            <div class="eh-side naive">
+              <div class="eh-side-label">Naive CHS</div>
+              Common shortcut: <code>SUM(credits) GROUP BY account_id</code> with a left join. <strong>Orphan logs vanish silently</strong>, out-of-window logs are <strong>credited as if billable</strong>. CSM rollups inflate.
+            </div>
+            <div class="eh-side avri">
+              <div class="eh-side-label">AVRI</div>
+              Pipeline uses an <strong>INNER JOIN to <code>contracts</code></strong> on date range. Orphan + out-of-window rows are <strong>excluded from CR/UM</strong>. Counts are surfaced via DQ tests, not buried.
+            </div>
+          </div>
+          <div class="eh-mechanism">
+            <div class="eh-mech-label">Mechanism</div>
+            <code>metrics_existing_account.sql</code> joins <code>daily_usage_logs</code> to <code>contracts</code> on <code>BETWEEN start_date AND end_date</code>. <code>test_data_quality.py</code> runs three dedicated assertions: <code>test_orphan_usage_count</code>, <code>test_out_of_window_usage</code>, <code>test_overlapping_contracts</code>.
+          </div>
+          <div class="eh-example">
+            <strong>Verified:</strong> ~150 orphan logs and ~150 out-of-window logs detected by the DQ suite (totals match generator config). Quarantined, never silently dropped.
+          </div>
+        </div>
       </div>
+    </div>
+
+    <div style="background: var(--panel); border: 1px solid var(--border); border-radius: 8px; padding: 16px 20px; margin-top: 20px;">
+      <div style="font-size: 10px; font-weight: 700; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.08em; margin-bottom: 6px;">At-a-glance summary</div>
+      <p style="margin: 0; font-size: 13px; color: var(--text-soft); line-height: 1.6;">Of the 5 brief-specified edge cases, 3 are caught by AVRI's <strong>structural pillar design</strong> (UM level guard for spike-and-drop, three-pillar collapse for shelfware, CR plateau for overage), 1 is solved at the <strong>pipeline layer</strong> (sum-of-active-commits for mid-year expansion), and 1 is solved at the <strong>data-quality layer</strong> (INNER-JOIN-and-flag for orphan/rogue usage). Different problems get answered at the right altitude — the metric doesn't try to fix data integrity issues, the pipeline doesn't try to fix scoring philosophy.</p>
     </div>
   </section>
 
@@ -2454,6 +3094,17 @@ else:
       <p><strong>Why the floor rule:</strong> linear weighted averages are substitutable, high CR can mathematically offset low TH. In reality, a customer with critical platform issues will not renew regardless of consumption. The floor expresses non-substitutability. <button class="info-icon" data-choice="f-trigger">i</button> trigger · <button class="info-icon" data-choice="f-cap">i</button> cap</p>
     </div>
 
+    <div class="spec-block" style="border-left: 4px solid #ea580c;">
+      <div class="subhead" style="color:#ea580c;">v1.3 · Activation Grace Period</div>
+      <p>Newly-signed contracts are <strong>excluded from CR's denominator</strong> until activated. A contract activates when EITHER trigger fires:</p>
+      <ul>
+        <li><strong>Trigger A — usage:</strong> cumulative consumption since <code>start_date</code> ≥ <strong>15%</strong> of monthly commit <button class="info-icon" data-choice="grace-usage">i</button></li>
+        <li><strong>Trigger B — time:</strong> contract age ≥ <strong>90 days</strong> <button class="info-icon" data-choice="grace-time">i</button></li>
+      </ul>
+      <p>Whichever fires first wins. Accounts with <strong>all contracts in grace</strong> get NULL AVRI scores and an <code>onboarding</code> color, not Red. They're visible in the table but not falsely scored. Shelfware-from-day-one is still caught at day 91 via Trigger B.</p>
+      <p><strong>Why:</strong> v1.2 penalized newly-signed contracts via cold-start (the new contract instantly inflated CR's denominator before consumption could ramp). A CSM landing $2M of new ARR could see their dollar-weighted AVRI <em>drop</em>. The grace period removes the cold-start drop without rewarding raw bookings — staying philosophically a value-realization metric.</p>
+    </div>
+
     <div class="spec-block">
       <div class="subhead">RAG thresholds</div>
       <table>
@@ -2462,6 +3113,7 @@ else:
           <tr><td><strong style="color:var(--good)">Green</strong></td><td>AVRI ≥ 75 <button class="info-icon" data-choice="t-green">i</button></td><td>Healthy. Renewal trajectory positive. Eligible for expansion.</td></tr>
           <tr><td><strong style="color:var(--warn)">Yellow</strong></td><td>50 ≤ AVRI &lt; 75 <button class="info-icon" data-choice="t-yellow">i</button></td><td>Watch. Specific pillar(s) underperforming.</td></tr>
           <tr><td><strong style="color:var(--bad)">Red</strong></td><td>AVRI &lt; 50 <button class="info-icon" data-choice="t-red">i</button></td><td>At risk. Active renewal risk. Escalate.</td></tr>
+          <tr><td><strong style="color:#6366f1">Onboarding</strong></td><td>NULL (v1.3)</td><td>All contracts in grace. Account too new to score. Don't penalize.</td></tr>
         </tbody>
       </table>
       <p><strong>v0 caveat:</strong> thresholds are heuristic. Production would calibrate against historical renewal outcomes.</p>
@@ -2498,6 +3150,85 @@ else:
       <div class="subhead">Open design questions</div>
       <p>(1) Are the 30/30/20/20 weights defensible without renewal-correlation calibration? (2) Is 90-day the right momentum window? (3) Should weights fork by Enterprise vs Mid-Market? (4) Which AVRI components should drive variable comp? (5) Should the 110–150% utilization band trigger a separate "Capacity Risk" alert independent of AVRI? (6) How do we handle cold-start (accounts &lt;90 days tenure)?</p>
     </div>
+
+    <div style="background:#fff7ed; border-left:4px solid #ea580c; border-radius:8px; padding:14px 18px; margin-top:18px;">
+      <strong style="color:#9a3412;">v2.0 update:</strong> AVRI is now framed as the <strong>quality signal</strong> in a two-metric architecture. The <strong>scale</strong> dimension lives in <a href="#" data-tab="rv" style="color:#9a3412; font-weight:700;">Realized Value (RV)</a>, which composes ARR with AVRI. AVRI itself is unchanged from v1.3.
+    </div>
+  </section>
+
+  <!-- ============================================ -->
+  <!-- REALIZED VALUE (v2.0) -->
+  <!-- ============================================ -->
+  <section id="rv" class="view">
+    <h2>Realized Value (RV) <span style="background:#fb923c;color:white;font-size:11px;padding:2px 8px;border-radius:4px;margin-left:8px;font-weight:700;vertical-align:middle;">v2.0</span></h2>
+    <p class="lead">RV adds the <strong>scale dimension</strong> the brief asked us to balance — without contaminating AVRI's quality signal. AVRI scores quality of execution; RV composes it with ARR to surface dollars at stake. Three uses, three consumers, one engine.</p>
+
+    <div style="background:linear-gradient(135deg, #f0fdf4 0%, #fef3c7 100%); border-radius:10px; padding:24px; margin:18px 0;">
+      <div style="font-size:11px; font-weight:700; color:#475569; text-transform:uppercase; letter-spacing:0.08em; margin-bottom:8px;">The formula</div>
+      <div style="font-size:32px; font-weight:700; color:#0f172a; text-align:center; padding:12px 0;">
+        RV  =  ARR  ×  AVRI / 100
+      </div>
+      <div style="text-align:center; font-size:13px; color:#475569;">Linear v1.  Decomposable.  Calibratable.  Onboarding accounts contribute zero.</div>
+    </div>
+
+    <h3>The headline</h3>
+    <p>From the latest snapshot (<code>specs/pillar_decomposition_snapshot.json</code>), the org-wide picture:</p>
+    <div style="text-align:center; margin:16px 0;">
+      <img src="charts/realization_headline.png" alt="Realization headline stacked bar"
+           style="max-width:100%; border:1px solid #e2e8f0; border-radius:6px;" />
+    </div>
+    <p class="lead">The single sentence an executive can quote: <em>"of $291M booked, we're realizing $226M and leaving $65M unrealized."</em> That number stays defensible at any aggregate level — drill from org → region → CSM → account and the math reconciles all the way down.</p>
+
+    <h3>Pillar decomposition: where the $ is being lost</h3>
+    <p>Under linear RV, unrealized $ decomposes cleanly across the four pillars (and floor-rule residual). At any aggregate level:</p>
+    <div style="background:#f8fafc; border-radius:6px; padding:14px 18px; margin:12px 0; font-family:ui-monospace, 'SF Mono', monospace; font-size:13px;">
+      Unrealized $ = ARR × Σ_pillar [weight × (100 − pillar_score) / 100]
+    </div>
+    <p>This is not an approximation; it's algebra. The pillar heatmap is exactly the metric:</p>
+    <div style="text-align:center; margin:16px 0;">
+      <img src="charts/pillar_heatmap.png" alt="Pillar decomposition heatmap by region"
+           style="max-width:100%; border:1px solid #e2e8f0; border-radius:6px;" />
+    </div>
+    <p>Reading the heatmap: scan down a column to spot which region is weakest at that pillar; scan across a row to see which pillar is dragging that region. AMER's CR column is the largest single concentration of unrealized $ — that's where executive attention should land first.</p>
+
+    <h3>Triage efficiency: the operational case for RV</h3>
+    <p>A CSM has finite hours. Examining the bottom 20% of accounts under three sort orders (worst-first) surfaces dramatically different fractions of the total $-at-risk:</p>
+    <div style="text-align:center; margin:16px 0;">
+      <img src="charts/triage_efficiency.png" alt="Triage efficiency curve"
+           style="max-width:100%; border:1px solid #e2e8f0; border-radius:6px;" />
+    </div>
+    <p class="lead">Sorting by <strong>largest unrealized $</strong> (the RV gap) surfaces ~91% of the at-risk dollars in 1/5th the effort. Sorting by lowest AVRI gets ~65%. Sorting by lowest CHS-style score barely beats random. <em>This is the empirical case for adding RV to the dashboard:</em> a 4× efficiency lift on triage time over the industry-standard composite, on the same data.</p>
+
+    <h3>Three uses, three consumers</h3>
+    <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(280px, 1fr)); gap:14px; margin:16px 0;">
+      <div style="background:#f0fdf4; border:1px solid #bbf7d0; border-radius:8px; padding:14px;">
+        <div style="font-size:10px; font-weight:700; color:#059669; text-transform:uppercase; letter-spacing:0.06em;">AVRI · Quality of execution</div>
+        <div style="font-size:13px; color:#0f172a; margin-top:8px; line-height:1.55;">Segment-fair, comp-grade. Used for CSM evaluation, performance review, and the case-study disagreements with naive CHS. Lives in the <a href="#" data-tab="avri" style="color:#059669; font-weight:600;">AVRI Spec</a> tab.</div>
+      </div>
+      <div style="background:#fef2f2; border:1px solid #fecaca; border-radius:8px; padding:14px;">
+        <div style="font-size:10px; font-weight:700; color:#dc2626; text-transform:uppercase; letter-spacing:0.06em;">RV · Value at stake</div>
+        <div style="font-size:13px; color:#0f172a; margin-top:8px; line-height:1.55;">Scale-aware. Used for executive risk concentration ("where are dollars leaking?"). Drives the dashboard's headline and pillar heatmap. <strong>This tab.</strong></div>
+      </div>
+      <div style="background:#fff7ed; border:1px solid #fdba74; border-radius:8px; padding:14px;">
+        <div style="font-size:10px; font-weight:700; color:#ea580c; text-transform:uppercase; letter-spacing:0.06em;">Unrealized $ · Operational triage</div>
+        <div style="font-size:13px; color:#0f172a; margin-top:8px; line-height:1.55;">Account-level. Used by individual CSMs to triage their book ("which 5 accounts have the most $ at risk this week?"). Drives the dashboard's at-risk-renewals worklist.</div>
+      </div>
+    </div>
+
+    <h3>Why linear (and not quadratic or sigmoidal)</h3>
+    <p>Three reasons the v2 spec lands on linear, documented at length in <a href="#" data-tab="defending" style="color:var(--accent-2); font-weight:600;">Defending Choices</a> and <code>specs/metric_v2.md</code>:</p>
+    <ul>
+      <li><strong>Decomposability.</strong> Only linear factors cleanly across pillars and aggregates. Quadratic and sigmoidal don't, which would force the dashboard to either misrepresent the math or surface arithmetic that doesn't add up at the parent level.</li>
+      <li><strong>Empirical honesty.</strong> Without renewal-outcome data, the convexity in quadratic is speculation about the AVRI-to-realization curve. The kinetic-energy analogy that initially motivated `(AVRI/100)²` is a story device, not a derivation — see <a href="#" style="color:var(--accent-2);">lessons_learned.md #17</a>.</li>
+      <li><strong>Calibratability.</strong> Linear is the conservative starting point. v3's job is to fit the actual function from historical renewals; if it comes out non-linear, the config-schema's <code>rv_formula.type</code> field accepts the swap.</li>
+    </ul>
+
+    <h3>Where RV is <em>not</em> used</h3>
+    <p>This is as important as where it is used. Quick check: under RV-as-CSM-ranking, an Enterprise CSM with $17M at AVRI=44 outranks a Mid-Market CSM with $1M at AVRI=89. RV mechanically rewards segment assignment, not performance. <strong>AVRI stays the comp metric.</strong> RV is an executive-risk and operational-triage signal, never a single combined CSM score. Documented in <a href="#" style="color:var(--accent-2);">lessons_learned.md #18</a>.</p>
+
+    <p style="font-size:12px; color:var(--text-muted); margin-top:24px;">
+      <strong>Source of truth:</strong> all numbers and visualizations on this tab come from <code>specs/pillar_decomposition_snapshot.json</code>, generated from the live BigQuery materialized tables (or local reconstruction via <code>core/scoring.py</code>). Refresh after a pipeline change: <code>python pipeline_and_tests/snapshot_pillar_decomposition.py</code>.
+    </p>
   </section>
 
   <!-- DATA SPEC -->
@@ -2616,6 +3347,10 @@ else:
   <section id="flow" class="view">
     <h2>Schema → Metric Flow</h2>
     <p class="lead">How raw schema columns flow through derived signals into AVRI's four pillars and the composite. Click a pillar button to highlight only the columns and signals feeding that pillar.</p>
+
+    <div style="background:#fff7ed; border-left:4px solid #fb923c; border-radius:6px; padding:12px 16px; margin:12px 0; font-size:13px;">
+      <strong style="color:#9a3412;">v2.0 layer:</strong> The composite produced below is then composed with ARR via <code>RV = ARR × AVRI/100</code> to produce <a href="#" data-tab="rv" style="color:#9a3412; font-weight:700;">Realized Value (RV)</a>. RV decomposes cleanly across the four pillars at every aggregate level. The scoring logic (this diagram + the RV composition) is implemented in <code>core/scoring.py</code> and parameterized by <code>core/config_v1.json</code>; pipeline SQL and dashboard both consume it.
+    </div>
 
     <div class="flow-controls">
       <span class="label-text">Highlight:</span>
@@ -2784,6 +3519,187 @@ else:
     <div class="def-grid" id="def-grid"></div>
   </section>
 
+  <!-- AVRI vs CHS STORIES -->
+  <section id="stories" class="view">
+    <h2>AVRI vs CHS, Where They Disagree</h2>
+    <p class="lead">A static snapshot of the most narratively important disagreements between AVRI and the naive Gainsight-style CHS, drawn from the live BigQuery data. The interactive version (with cell-by-cell drilldown) lives in the dashboard's <strong>🔄 AVRI vs CHS</strong> tab; this view captures the curated case-studies for the deck and for offline reading.</p>
+
+    <p class="lead" style="font-size:12px;color:var(--text-muted);">Snapshot generated from <code>avri_account</code> + <code>metrics_existing_account</code> on the as-of date 2026-04-22, 766 in-scope accounts. To regenerate after a pipeline change, run <code>python pipeline_and_tests/snapshot_avri_vs_chs.py</code>.</p>
+
+    <h3>The crosstab matrix</h3>
+    <p class="lead">Rows = AVRI verdict. Columns = naive CHS verdict. Diagonal cells (gray) = agreement. Off-diagonal cells (orange-tinted) = disagreement, with stronger orange where the cell is bigger.</p>
+
+    <table class="crosstab-table">
+      <tr>
+        <th></th>
+        <th class="col-green">CHS Green</th>
+        <th class="col-yellow">CHS Yellow</th>
+        <th class="col-red">CHS Red</th>
+      </tr>
+      <tr>
+        <th class="row-green">AVRI Green</th>
+        <td class="diag"><div class="ct-n">444</div><div class="ct-arr">$181.5M ARR</div></td>
+        <td class="disagree strong"><div class="ct-n">89</div><div class="ct-arr">$33.5M ARR</div><div class="ct-tag">decay weighting wins</div></td>
+        <td class="disagree" style="opacity:0.4"><div class="ct-n">0</div><div class="ct-arr">—</div></td>
+      </tr>
+      <tr>
+        <th class="row-yellow">AVRI Yellow</th>
+        <td class="disagree"><div class="ct-n">7</div><div class="ct-arr">$0.4M ARR</div><div class="ct-tag">floor rule fires</div></td>
+        <td class="diag"><div class="ct-n">48</div><div class="ct-arr">$20.2M ARR</div></td>
+        <td class="disagree"><div class="ct-n">8</div><div class="ct-arr">$4.9M ARR</div><div class="ct-tag">AVRI moderates</div></td>
+      </tr>
+      <tr>
+        <th class="row-red">AVRI Red</th>
+        <td class="disagree" style="opacity:0.4"><div class="ct-n">0</div><div class="ct-arr">—</div></td>
+        <td class="disagree strong"><div class="ct-n">25</div><div class="ct-arr">$16.9M ARR</div><div class="ct-tag">AVRI more decisive</div></td>
+        <td class="diag"><div class="ct-n">109</div><div class="ct-arr">$47.7M ARR</div></td>
+      </tr>
+      <tr>
+        <th class="row-onb">AVRI Onboarding</th>
+        <td class="disagree" style="opacity:0.4"><div class="ct-n">0</div><div class="ct-arr">—</div></td>
+        <td class="disagree"><div class="ct-n">5</div><div class="ct-arr">—</div><div class="ct-tag">grace</div></td>
+        <td class="disagree"><div class="ct-n">31</div><div class="ct-arr">—</div><div class="ct-tag">grace</div></td>
+      </tr>
+    </table>
+
+    <p class="lead" style="margin-top:6px;">
+      <strong>Reading the matrix:</strong> 601 of 766 accounts are on the diagonal (both metrics agree on green/yellow/red). 36 are in Onboarding (v1.3 grace period — not yet scored by AVRI). That leaves <strong>129 accounts where the metrics genuinely disagree</strong>. Counts pulled from <code>specs/avri_vs_chs_snapshot.json</code> (regenerate via <code>python pipeline_and_tests/snapshot_avri_vs_chs.py</code>).
+    </p>
+
+    <p class="lead" style="margin-top:6px;">
+      <strong>Notable absences (the empty cells matter too):</strong> there is no AVRI-Green × CHS-Red cell, and no AVRI-Red × CHS-Green cell. Both metrics agree on the extremes — when one says "definitely fine" and the other says "definitely broken," they don't reach opposite verdicts. Disagreement happens in the middle, exactly where it should: the boundary between Green and Yellow, and between Yellow and Red. That's the noise band where a snapshot-based metric gets confused and a structural-aware one cuts through.
+    </p>
+
+    <h3>Three case-study accounts</h3>
+    <p class="lead">Pulled directly from the inspection report. Each one represents a different type of disagreement, and together they show why AVRI's structural design choices matter on real data.</p>
+
+    <!-- ============ Case 1: Floor Rule (AVRI Yellow + CHS Green) ============ -->
+    <div class="case-card">
+      <span class="case-tag">Case 1 · Floor Rule Fires</span>
+      <div class="case-header">
+        <h4>ACC-00026</h4>
+        <div class="case-meta">Healthcare · $165K ARR · 130 days tenure</div>
+      </div>
+      <div class="case-compare">
+        <div class="case-side">
+          <div class="side-label">Naive CHS verdict</div>
+          <div class="side-score green">78.2</div>
+          <div class="side-color-tag green">Green</div>
+          <div class="side-detail">CHS sees high utilization, decent active days, recent yellow color. Most signals point healthy. The metric reports "renewal trajectory positive."</div>
+        </div>
+        <div class="case-arrow">→</div>
+        <div class="case-side">
+          <div class="side-label">AVRI verdict</div>
+          <div class="side-score yellow">50.0</div>
+          <div class="side-color-tag yellow">Yellow</div>
+          <div class="side-detail">Three pillars at 100. But TH score is 28.5. The floor rule fires: AVRI capped at 50 regardless of how strong CR/UM/DM are. The metric refuses to let consumption paper over a tech-health crisis.</div>
+          <div style="margin-top:10px; padding:6px 10px; background:#fff7ed; border-left:3px solid #ea580c; border-radius:3px; font-size:11.5px;">
+            <strong style="color:#9a3412;">v2 RV impact:</strong> $165K ARR × 50/100 = <strong>$83K realized · $83K unrealized</strong> (50% of book). Floor-rule residual is the dominant unrealized component.
+          </div>
+        </div>
+      </div>
+      <div class="case-pillars">
+        <div class="case-pillar cr"><div class="p-label">CR</div><div class="p-value">100</div><div class="p-bar"><div class="fill" style="width:100%"></div></div></div>
+        <div class="case-pillar um"><div class="p-label">UM</div><div class="p-value">100</div><div class="p-bar"><div class="fill" style="width:100%"></div></div></div>
+        <div class="case-pillar dm"><div class="p-label">DM</div><div class="p-value">100</div><div class="p-bar"><div class="fill" style="width:100%"></div></div></div>
+        <div class="case-pillar th"><div class="p-label">TH</div><div class="p-value" style="color:var(--bad)">28.5</div><div class="p-bar"><div class="fill" style="width:28.5%; background:var(--bad);"></div></div></div>
+      </div>
+      <div class="case-narrative">
+        <div class="narrative-label">Why AVRI is right</div>
+        Linear weighted averages are <strong>substitutable</strong>. Without the floor rule, AVRI would compute to 0.30·100 + 0.30·100 + 0.20·100 + 0.20·28.5 = <strong>85.7</strong>, comfortably Green. But a customer with a critical platform issue does not renew regardless of how much they're consuming. The floor rule expresses that asymmetric reality: <strong>tech health cannot be averaged away</strong>. CHS doesn't have this concept; it equally weights everything.
+      </div>
+    </div>
+
+    <!-- ============ Case 2: Decay Weighting (AVRI Green + CHS Yellow) ============ -->
+    <div class="case-card">
+      <span class="case-tag">Case 2 · Decay Weighting Wins</span>
+      <div class="case-header">
+        <h4>ACC-00876</h4>
+        <div class="case-meta">Manufacturing · $246K ARR · 215 days tenure</div>
+      </div>
+      <div class="case-compare">
+        <div class="case-side">
+          <div class="side-label">Naive CHS verdict</div>
+          <div class="side-score yellow">56.7</div>
+          <div class="side-color-tag yellow">Yellow</div>
+          <div class="side-detail">Latest health color was red after one bad week. CHS gives 30%·0 = 0 for color, dragging the composite down to Yellow despite strong utilization. CHS's snapshot view over-penalizes recency.</div>
+        </div>
+        <div class="case-arrow">→</div>
+        <div class="case-side">
+          <div class="side-label">AVRI verdict</div>
+          <div class="side-score green">92.2</div>
+          <div class="side-color-tag green">Green</div>
+          <div class="side-detail">All consumption pillars at 100. TH is 61, which reflects the 90-day decay-weighted view: mostly green with a recent dip. AVRI sees the trend, not just the latest snapshot.</div>
+          <div style="margin-top:10px; padding:6px 10px; background:#f0fdf4; border-left:3px solid #059669; border-radius:3px; font-size:11.5px;">
+            <strong style="color:#065f46;">v2 RV impact:</strong> $246K ARR × 92.2/100 = <strong>$227K realized · $19K unrealized</strong> (the easy-win contrast — almost all value captured).
+          </div>
+        </div>
+      </div>
+      <div class="case-pillars">
+        <div class="case-pillar cr"><div class="p-label">CR</div><div class="p-value">100</div><div class="p-bar"><div class="fill" style="width:100%"></div></div></div>
+        <div class="case-pillar um"><div class="p-label">UM</div><div class="p-value">100</div><div class="p-bar"><div class="fill" style="width:100%"></div></div></div>
+        <div class="case-pillar dm"><div class="p-label">DM</div><div class="p-value">100</div><div class="p-bar"><div class="fill" style="width:100%"></div></div></div>
+        <div class="case-pillar th"><div class="p-label">TH</div><div class="p-value">61.0</div><div class="p-bar"><div class="fill" style="width:61%"></div></div></div>
+      </div>
+      <div class="case-narrative">
+        <div class="narrative-label">Why AVRI is right</div>
+        AVRI's TH pillar uses a <strong>90-day decay-weighted average</strong> of health colors. Today's color matters most, but a single bad week from last week (now ~10 days old) still has weight 0.95<sup>10</sup> ≈ 0.60. Earlier greens (from 30 days ago, weight 0.21) still contribute. The result: a recent bad week pulls TH from ~85 down to 61, but doesn't crater it. CHS, by contrast, looks only at the latest color and gives it 30% of the weight. <strong>One bad data point shouldn't outweigh weeks of healthy ones.</strong>
+      </div>
+    </div>
+
+    <!-- ============ Case 3: AVRI More Decisive (AVRI Red + CHS Yellow) ============ -->
+    <div class="case-card">
+      <span class="case-tag">Case 3 · AVRI Is More Decisive</span>
+      <div class="case-header">
+        <h4>ACC-00298</h4>
+        <div class="case-meta">Financial Services · $325K ARR · 332 days tenure</div>
+      </div>
+      <div class="case-compare">
+        <div class="case-side">
+          <div class="side-label">Naive CHS verdict</div>
+          <div class="side-score yellow">57.2</div>
+          <div class="side-color-tag yellow">Yellow</div>
+          <div class="side-detail">CHS sees: significant ARR (10% boost), some active engagement, recent health color still mostly green. Sums to 57 — comfortably in the Yellow "watch" zone. The metric says "keep an eye on this account."</div>
+        </div>
+        <div class="case-arrow">→</div>
+        <div class="case-side">
+          <div class="side-label">AVRI verdict</div>
+          <div class="side-score red">23.6</div>
+          <div class="side-color-tag red">Red</div>
+          <div class="side-detail">CR=9.4 (consumed 5% of commit). UM=0 (level guard fired — total annual usage too low). DM=25.6 (only 23 active days in 90). TH=78.5 saves it from absolute zero, but three pillars in collapse drag the composite to deep Red.</div>
+          <div style="margin-top:10px; padding:6px 10px; background:#fef2f2; border-left:3px solid #dc2626; border-radius:3px; font-size:11.5px;">
+            <strong style="color:#7f1d1d;">v2 RV impact:</strong> $325K ARR × 23.6/100 = <strong>$77K realized · $248K unrealized</strong> — the renewal landmine. Largest single-account contributor to org-wide unrealized $.
+          </div>
+        </div>
+      </div>
+      <div class="case-pillars">
+        <div class="case-pillar cr"><div class="p-label">CR</div><div class="p-value" style="color:var(--bad)">9.4</div><div class="p-bar"><div class="fill" style="width:9%; background:var(--bad);"></div></div></div>
+        <div class="case-pillar um"><div class="p-label">UM</div><div class="p-value" style="color:var(--bad)">0</div><div class="p-bar"><div class="fill" style="width:0%; background:var(--bad);"></div></div></div>
+        <div class="case-pillar dm"><div class="p-label">DM</div><div class="p-value" style="color:var(--warn)">25.6</div><div class="p-bar"><div class="fill" style="width:26%; background:var(--warn);"></div></div></div>
+        <div class="case-pillar th"><div class="p-label">TH</div><div class="p-value">78.5</div><div class="p-bar"><div class="fill" style="width:79%"></div></div></div>
+      </div>
+      <div class="case-narrative">
+        <div class="narrative-label">Why AVRI is right</div>
+        This is the most common type of disagreement in the data — <strong>25 accounts representing $16.9M of ARR</strong> sit in this AVRI Red × CHS Yellow cell. The pattern: customer has substantial ARR commit, sporadic light usage, recent health color still green, so CHS looks at the surface signals and says "watch zone." AVRI looks at the consumption itself: <strong>5% utilization, no momentum, sparse engagement</strong> — three of four pillars in collapse. The customer is on a glide path to non-renewal, and CHS's composite formula isn't structured to see it. AVRI escalates correctly. <em>This is the cell where AVRI's value to a CSM organization is most concrete: it converts ambiguous "Watch" accounts into actionable "Escalate" ones.</em>
+      </div>
+    </div>
+
+    <h3>Why this becomes a slide</h3>
+    <p class="lead">These three cases each cover a different one of AVRI's structural design choices: <strong>Case 1 = floor rule</strong>, <strong>Case 2 = decay-weighted technical health</strong>, <strong>Case 3 = consumption-dominant weighting</strong>. Together they show why AVRI is structurally different from a snapshot composite, not just numerically different.</p>
+
+    <p class="lead">The crosstab itself is the strongest visual: <strong>129 accounts where AVRI and the industry-standard composite genuinely disagree</strong>, all clustered in the boundary cells (Green↔Yellow and Yellow↔Red). The agreement diagonal is large (601 accounts) — AVRI isn't trying to invalidate Gainsight-style scoring; it's specializing it for the consumption-hybrid model and getting the boundary calls right.</p>
+
+    <p class="lead">For the deck, this view is a strong candidate as either:</p>
+    <ul>
+      <li><strong>Replacement for slide 5</strong>'s 3-account table — same structure, but explicitly framed as AVRI vs CHS contrasts rather than just "three deck stories"</li>
+      <li><strong>Backup slide</strong> for Q&amp;A defense — if a panelist asks "where exactly does AVRI disagree with industry-standard composites?", you have three concrete examples and a 4-cell summary ready</li>
+    </ul>
+
+    <p class="lead" style="font-size:12px;color:var(--text-muted);margin-top:18px;">
+      <strong>Source of truth:</strong> all numbers and account stories on this tab come from <code>specs/avri_vs_chs_snapshot.json</code>, generated from the live BigQuery tables. To refresh after a pipeline change: run <code>python pipeline_and_tests/snapshot_avri_vs_chs.py</code>, review the JSON, then manually update the matrix counts and case-card values above. The lobby is intentionally static (curated narrative); the live interactive version is in the dashboard's <strong>🔄 AVRI vs CHS</strong> tab.
+    </p>
+  </section>
+
   <!-- SCRIPTS & RUN GUIDE -->
   <section id="scripts" class="view">
     <h2>Scripts &amp; Run Guide</h2>
@@ -2805,15 +3721,28 @@ python main.py                          # → output/*.parquet<br>
 # ---- 2. Upload to BigQuery ----<br>
 python load_to_bigquery.py              # → 5 tables in gcs_north_star dataset<br>
 <br>
-# ---- 3. Run metric pipeline ----<br>
+# ---- 3. Run metric pipeline (v2: 4 tables w/ RV columns) ----<br>
 cd ../pipeline_and_tests<br>
-python run_pipeline.py                  # → 4 materialized BQ tables<br>
+pip install -r requirements.txt<br>
+python run_pipeline.py                  # → avri_account, avri_csm, avri_region, metrics_existing_account<br>
 <br>
-# ---- 4. Inductive inspection ----<br>
+# ---- 4. Inspection + snapshots for the lobby ----<br>
 python inspection.py                    # → ../specs/inspection_findings.md<br>
+python snapshot_avri_vs_chs.py          # → ../specs/avri_vs_chs_snapshot.json<br>
+python snapshot_pillar_decomposition.py # → ../specs/pillar_decomposition_snapshot.json   [v2]<br>
 <br>
-# ---- 5. Launch dashboard ----<br>
-cd ../dashboard<br>
+# ---- 5. DQ tests (29 — 24 v1 + 5 v2 RV invariants) ----<br>
+pytest -v<br>
+<br>
+# ---- 6. v2 contract test: scoring.py vs SQL pipeline parity ----<br>
+cd ..<br>
+python -m pytest core/test_scoring.py -v<br>
+<br>
+# ---- 7. (optional) Re-render static chart PNGs for lobby + deck ----<br>
+python charts/render_v2_charts.py       # → charts/*.png   [v2]<br>
+<br>
+# ---- 8. Launch dashboard ----<br>
+cd dashboard<br>
 pip install -r requirements.txt<br>
 streamlit run app.py                    # → http://localhost:8501
       </div>
@@ -3035,9 +3964,18 @@ streamlit run app.py                    # → http://localhost:8501
           <div class="arch-card sql">
             <div class="card-title">sql/avri/</div>
             <ul>
-              <li>avri_account.sql</li>
-              <li>avri_csm.sql</li>
-              <li>avri_region.sql</li>
+              <li>avri_account.sql · v2 RV cols</li>
+              <li>avri_csm.sql · book_rv, rate</li>
+              <li>avri_region.sql · same</li>
+            </ul>
+          </div>
+          <div class="arch-card python" style="border-color:#fb923c; background:#fff7ed;">
+            <div class="card-title">core/ <span style="background:#fb923c;color:white;font-size:9px;padding:1px 5px;border-radius:8px;font-weight:700;">v2</span></div>
+            <div class="card-sub">Single source of truth for scoring. Pipeline + dashboard both read.</div>
+            <ul>
+              <li>config_v1.json · all params</li>
+              <li>scoring.py · pure functions</li>
+              <li>test_scoring.py · 20 invariants</li>
             </ul>
           </div>
         </div>
@@ -3076,12 +4014,14 @@ streamlit run app.py                    # → http://localhost:8501
           </div>
           <div class="arch-card python">
             <div class="card-title">dashboard/app.py</div>
-            <div class="card-sub">Streamlit. 4 tabs · 10-min query cache.</div>
+            <div class="card-sub">Streamlit. 6 tabs · 10-min query cache. v2 reads via core/scoring.py.</div>
             <ul>
+              <li>📈 Realized Value <span style="background:#fb923c;color:white;font-size:9px;padding:0px 4px;border-radius:6px;font-weight:700;">v2</span></li>
               <li>📊 Executive Overview</li>
               <li>👤 CSM Detail</li>
               <li>🔍 Account Drill-down</li>
               <li>🚨 At-Risk Renewals</li>
+              <li>⚙️ Calibration <span style="background:#fb923c;color:white;font-size:9px;padding:0px 4px;border-radius:6px;font-weight:700;">v2</span></li>
             </ul>
           </div>
         </div>
@@ -3128,6 +4068,11 @@ streamlit run app.py                    # → http://localhost:8501
       <p>Every script that touches BigQuery reads credentials from <code>~/.config/gcloud/application_default_credentials.json</code>, written once by <code>gcloud auth application-default login</code>. No service account key files in the repo, no env vars to set. Standard pattern for any code that talks to GCP from a developer machine.</p>
     </div>
 
+    <div class="spec-block" style="border-left: 4px solid #fb923c;">
+      <div class="subhead">7 · v2.0 — single source of truth for scoring math</div>
+      <p>Two implementations of AVRI/RV scoring exist by necessity: <code>sql/avri/avri_account.sql</code> (BigQuery, for the materialized tables) and <code>core/scoring.py</code> (Python, for dashboard live recomputation and unit tests). Without coordination, those would drift. v2 introduces <code>core/config_v1.json</code> as the calibration source of truth — every weight, threshold, decay rate, curve breakpoint, and grace parameter — and <code>core/test_scoring.py</code> as the contract test that verifies both implementations produce identical numbers for the bundled default config. The dashboard's Calibration tab is the user-facing version of this same idea: every parameter is named, located, and editable in a sandbox that never persists to production.</p>
+    </div>
+
     <h3>What runs where</h3>
 
     <div class="spec-block">
@@ -3162,6 +4107,14 @@ streamlit run app.py                    # → http://localhost:8501
 
     <div class="takeaway">
       <p><span class="num">3</span><strong>Existing composites (Gainsight &amp; peers) have known gaps.</strong> They're the right <em>pattern</em> but they don't natively handle commit-vs-consume, consistent overages, spike-and-drop trajectory, or orphaned usage. Those gaps are exactly the whitespace your proposal fills. The opportunity isn't "invent a new health score", it's "build the health score PANW's business model actually needs."</p>
+    </div>
+
+    <div class="takeaway" style="border-left:4px solid #fb923c;">
+      <p><span class="num" style="background:#fb923c;color:white;">4</span><strong>Quality and scale are different questions; treat them with different metrics on the same dashboard <span style="background:#fb923c;color:white;font-size:9px;padding:1px 5px;border-radius:4px;font-weight:700;vertical-align:middle;">v2</span>.</strong> AVRI is the quality signal — segment-fair, comp-grade, the answer to "is this CSM doing good work?" Realized Value (RV = ARR × AVRI/100) is the value-at-stake signal — scale-aware, executive-grade, the answer to "where are dollars leaking?" Collapsing them into one composite re-introduces the TCV-trap we were designed to avoid. <a href="#" data-tab="rv" style="color:#9a3412; font-weight:700;">RV tab →</a></p>
+    </div>
+
+    <div class="takeaway" style="border-left:4px solid #fb923c;">
+      <p><span class="num" style="background:#fb923c;color:white;">5</span><strong>Linear math gives you decomposability for free <span style="background:#fb923c;color:white;font-size:9px;padding:1px 5px;border-radius:4px;font-weight:700;vertical-align:middle;">v2</span>.</strong> Under linear RV, unrealized $ at any aggregate level decomposes cleanly across the four pillars + floor rule. The pillar heatmap on the dashboard <em>is</em> the metric, not an approximation of it. Quadratic and sigmoidal alternatives do not factor like this — yet another reason linear is the right v1 starting point. v3 calibrates the function from real renewal data once it exists.</p>
     </div>
 
     <h3>Open design questions to resolve next</h3>
@@ -3522,15 +4475,41 @@ streamlit run app.py                    # → http://localhost:8501
     });
   });
 
-  // ========= TAB NAV =========
-  document.querySelectorAll('.tab-btn').forEach(btn => {
-    btn.addEventListener('click', () => {
-      const tab = btn.getAttribute('data-tab');
-      document.querySelectorAll('.tab-btn').forEach(b => b.classList.toggle('active', b === btn));
-      document.querySelectorAll('section.view').forEach(s => s.classList.toggle('active', s.id === tab));
-      window.scrollTo({ top: 0, behavior: 'instant' });
+  // ========= INLINE LINKS WITH data-tab (e.g., from RV tab into AVRI Spec) =========
+  // Allow <a href="#" data-tab="..."> to act as in-page tab navigation
+  document.querySelectorAll('a[data-tab]').forEach(a => {
+    a.addEventListener('click', (e) => {
+      e.preventDefault();
+      const tabName = a.getAttribute('data-tab');
+      const tabBtn = document.querySelector(`.tab-btn[data-tab="${tabName}"]`);
+      if (tabBtn) tabBtn.click();
     });
   });
+
+  // ========= TAB NAV =========
+  // Persist active tab across page reloads. Restore from localStorage on load,
+  // and update on every tab click.
+  const TAB_STORAGE_KEY = 'metrics-explorer.activeTab';
+
+  function activateTab(tabId, scroll = true) {
+    const btn = document.querySelector(`.tab-btn[data-tab="${tabId}"]`);
+    if (!btn) return false;
+    document.querySelectorAll('.tab-btn').forEach(b => b.classList.toggle('active', b === btn));
+    document.querySelectorAll('section.view').forEach(s => s.classList.toggle('active', s.id === tabId));
+    if (scroll) window.scrollTo({ top: 0, behavior: 'instant' });
+    try { localStorage.setItem(TAB_STORAGE_KEY, tabId); } catch (e) {}
+    return true;
+  }
+
+  document.querySelectorAll('.tab-btn').forEach(btn => {
+    btn.addEventListener('click', () => activateTab(btn.getAttribute('data-tab')));
+  });
+
+  // On load, restore the previously active tab (if it still exists)
+  try {
+    const saved = localStorage.getItem(TAB_STORAGE_KEY);
+    if (saved) activateTab(saved, false);
+  } catch (e) {}
 
   // ========= FILTER WIRING =========
   ['f-category', 'f-dim', 'f-ll', 'f-search', 't-game'].forEach(id => {
@@ -3741,13 +4720,71 @@ streamlit run app.py                    # → http://localhost:8501
       prod: "N/A, synthetic parameter.",
       defense: "Reflects the universal B2B weekday pattern. Conservative compared to many products, could go to 0.4–0.5 if we wanted more dramatic seasonality." },
 
+    // ---- v1.3 GRACE PERIOD ----
+    { id: "grace-usage", cat: "thresh", value: "15%", vsub: "Grace usage trigger",
+      title: "Activation Grace Period — Trigger A threshold",
+      where: "v1.3 contract activation logic in avri_account.sql",
+      why: "A newly-signed contract activates (and starts being scored) when cumulative usage reaches 15% of monthly commit. 15% ≈ 4-5 days of full-rate usage in a month — meaningful adoption but achievable for any legitimate ramp.",
+      range: "5–30%. Lower (5%) lets token usage trigger early; higher (30%) delays activation for slow but legitimate ramps.",
+      prod: "Calibrate against historical onboarding data: what's the cumulative-usage level at which renewal probability stabilizes?",
+      defense: "15% is meaningful adoption — about 4-5 days of full-rate usage. Below that, the customer hasn't really committed. Above that, they have. We picked the threshold to be reachable in the first 30-60 days for any real ramp." },
+
+    { id: "grace-time", cat: "thresh", value: "90 days", vsub: "Grace time fallback",
+      title: "Activation Grace Period — Trigger B timeout",
+      where: "v1.3 contract activation logic in avri_account.sql",
+      why: "If usage hasn't hit 15% in 90 days, the contract activates anyway. This catches shelfware-from-day-one — accounts that never ramp get scored honestly at day 91 instead of getting permanent immunity.",
+      range: "60–120 days. Shorter (60) judges faster; longer (120) is more lenient.",
+      prod: "Match the comp-plan cadence. 90 days aligns with quarterly business reviews and our existing CR/UM/DM windows.",
+      defense: "90 days is 'one quarter,' which matches every other window in the metric. Shelfware accounts that never ramp get caught at day 91 — they don't get permanent grace. Trigger B is the safety net that prevents Trigger A from being a loophole." },
+
     { id: "d-markov", cat: "data", value: "P(g→g)=0.85", vsub: "Color stickiness",
       title: "Health color Markov stickiness",
       where: "Data generation, account_health.health_color",
       why: "Setting green-to-green at 0.85 produces realistic color stability, accounts don't flip status weekly. Reflects real CSM-rated color behavior.",
       range: "0.75–0.95 for the diagonal. Lower diagonals make colors flip more; higher makes them stickier.",
       prod: "N/A, synthetic.",
-      defense: "Real CSM-rated colors are sticky, they don't change weekly. The transition matrix produces ~80% of healthy accounts staying green over a quarter, which matches industry observation." }
+      defense: "Real CSM-rated colors are sticky, they don't change weekly. The transition matrix produces ~80% of healthy accounts staying green over a quarter, which matches industry observation." },
+
+    // ---- v2.0 RV ENTRIES ----
+    { id: "v2-linear", cat: "weight", value: "Linear", vsub: "RV formula choice",
+      title: "Why linear RV (not quadratic or sigmoidal)?",
+      where: "core/scoring.py compute_rv(); core/config_v1.json rv_formula.type",
+      why: "Three reasons. (1) Linear factors cleanly across pillars and aggregates — quadratic doesn't, which would force the dashboard to either misrepresent the math or surface arithmetic that doesn't add up at the parent level. (2) We can't justify any specific curvature without renewal-outcome data; linear avoids pretending we can. (3) Linear is calibratable — v3 swaps in a fitted function from real renewal data, and the config schema already accepts it.",
+      range: "Linear (default), quadratic (rejected for v2), sigmoidal (v3 candidate, requires renewal data to fit).",
+      prod: "Run logistic regression on (AVRI_score → P(renewal)) using historical renewal outcomes. If the fit is significantly non-linear, replace with the fitted function.",
+      defense: "I considered quadratic — kinetic-energy analog, mass linear and velocity squared. I dropped it because KE squares velocity for a specific physics reason (∫F·dx integrates that way) that doesn't apply to AVRI. The empirical convexity that quadratic implies is a hypothesis we can't currently test. Linear is the conservative version defensible without any unverified claim about the AVRI-to-renewal curve." },
+
+    { id: "v2-rv-not-comp", cat: "weight", value: "Not in comp", vsub: "RV usage scope",
+      title: "Why RV is not used for CSM ranking / comp",
+      where: "specs/metric_v2.md Section 5; specs/lessons_learned.md #18",
+      why: "RV mechanically rewards segment assignment, not performance. An Enterprise CSM with $17M book at AVRI=44 outranks a Mid-Market CSM with $1M at AVRI=89 under RV-as-ranking. That's not measuring quality of work, it's measuring book size — the very thing we wanted to keep out of the quality signal.",
+      range: "AVRI for performance comp (segment-fair, quality-graded). RV for executive risk dashboards (scale-aware). Unrealized $ for individual-CSM operational triage.",
+      prod: "Enforced by dashboard surface choice — RV doesn't appear in the CSM Detail tab as a primary ranking column.",
+      defense: "RV is value at stake; AVRI is execution quality. Two different questions, different consumers. If you collapsed them into one comp metric, you'd punish Mid-Market CSMs for the segment they're assigned to. That's exactly the trap AVRI was designed to avoid." },
+
+    { id: "v2-decomp", cat: "agg", value: "Σ pillars + Floor", vsub: "Pillar decomposition",
+      title: "Pillar decomposition adds up exactly",
+      where: "avri_account.sql output columns; core/scoring.py compute_pillar_decomposition()",
+      why: "Under linear RV, unrealized $ = ARR × Σ_pillar (weight × (100 − pillar_score) / 100). That's algebra, not approximation. The pillar-decomposition heatmap on the dashboard renders directly from these columns; sum at any aggregate level (region, CSM, account) reconciles to the parent's total unrealized $.",
+      range: "Validated to within $1 / $5 per account in test_data_quality.py::test_rv_decomposition_adds_up. (BQ rounding artifacts produce sub-$5 drift; pandas reference impl in core/scoring.py is exact.)",
+      prod: "Production should consider keeping pillar scores at full precision (not rounded to 1 decimal) to eliminate even the BQ rounding drift. Cosmetic regression for downstream consumers reading the avri_account table.",
+      defense: "The heatmap is mathematically the metric, not a summary. Click any cell → those dollars are real. The contract test in core/test_scoring.py verifies the decomposition holds in pure-Python; the BQ pipeline test extends the same check at production grain." },
+
+    { id: "v2-grace-rv", cat: "thresh", value: "RV = 0", vsub: "In-grace contracts",
+      title: "Grace period extends to RV (zero contribution)",
+      where: "avri_account.sql, IF(all_contracts_in_grace, 0, ...) clauses",
+      why: "v1.3 grace period excluded in-grace contracts from CR's denominator. v2 extends the exclusion: in-grace accounts also contribute zero to RV. Otherwise a CSM signing a $2M deal would see their book's realized-value drop by $2M during ramp — a worse penalty than v1.3's CR-drag, because RV squares the AVRI penalty.",
+      range: "Always-on (consistent with v1.3 grace philosophy). Could be loosened to 'partial RV credit during grace' but unclear what that signals.",
+      prod: "Same as v1.3 grace tuning. The 15% / 90-day Trigger A/B parameters apply unchanged.",
+      defense: "If a CSM lands $2M of new ARR and hasn't ramped yet, they should be neutral on the dashboard — not penalized via RV any more than they were via AVRI. The principle from v1.3 carries through: signing never penalizes during a fair ramp window." },
+
+    { id: "v2-config", cat: "weight", value: "core/config_v1.json", vsub: "Calibration centralization",
+      title: "Why centralize all calibratable parameters in one JSON",
+      where: "core/config_v1.json (data); core/scoring.py (consumer)",
+      why: "Pipeline SQL and dashboard need to score accounts identically. With independent implementations they would inevitably drift. Putting every weight, threshold, decay rate, curve breakpoint, and grace parameter in one JSON — consumed by both pipeline (via templating) and dashboard (via direct import) — eliminates that drift class. The Calibration tab in the dashboard is the transparency artifact: every number is named, located, and visible.",
+      range: "All v2 parameters listed in core/config_v1.json. The Calibration tab in the dashboard shows them and the underlying file at /core/config_v1.json is version-controlled.",
+      prod: "In production, this file is locked and changes go through code review. The Calibration tab is presentation framing, not operational tuning.",
+      defense: "Every magic number in the metric is in one file with a comment explaining its provenance. The dashboard's Calibration tab proves it — open it, see every parameter at a glance. Production runs locked defaults; review changes through code review like any other code change." }
   ];
 
   function renderChoices() {

@@ -1,6 +1,6 @@
 # Metric v0: Account Value Realization Index (AVRI)
 
-> **READ ME FIRST.** This is the *historical* v0 spec. The pipeline and dashboard implement **v1.2**, see [`metric_v1.md`](metric_v1.md) for the diff. v0 is preserved for narrative purposes (the "before" state in the inductive workflow). Read v0 → then v1 → then `inspection_findings.md` to see why v1's changes were earned.
+> **READ ME FIRST.** This is the *historical* v0 spec. The pipeline and dashboard implement **v2.0** — see [`metric_v1.md`](metric_v1.md) for the v0→v1.3 diff (grace period, floor rule refinement) and [`metric_v2.md`](metric_v2.md) for v2.0 (Realized Value addition, calibration centralization, pillar decomposition). v0 is preserved for narrative purposes — the "before" state in the inductive workflow. Read v0 → v1 → v2 → `inspection_findings.md` to see why each evolution was earned.
 
 **Status:** Initial hypothesis (frozen). Refined inductively after Phase 3 inspection.
 **Owner:** Principal IT PM, GCS

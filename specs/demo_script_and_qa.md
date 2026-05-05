@@ -100,10 +100,11 @@ If the panel asks "you didn't cover X" mid-presentation, use these cue words to 
 - Point at the formula bar: *"Weighted linear average of the four."*
 - Point at the floor rule callout: *"This is the cleverest bit. Linear weighted averages are substitutable, high CR can mathematically offset low TH. In reality, a customer with a critical platform crisis won't renew regardless of consumption. The floor rule expresses non-substitutability, if TH is below 30, AVRI can't exceed 50, period."*
 - Point at the RAG bands at the bottom: *"Green at 75 means every pillar is contributing positively. Red below 50 is a real renewal risk, escalate immediately."*
+- **Point at the v1.3 footnote at the bottom of the slide**: *"One refinement worth flagging. Earlier versions of AVRI penalized newly-signed contracts, the new contract instantly inflated CR's denominator before consumption could ramp. So a CSM landing $2M of new ARR could see their dollar-weighted average go down. We fixed that with an Activation Grace Period. A new contract is excluded from CR's denominator until either cumulative usage hits 15% of monthly commit, OR 90 days have elapsed, whichever first. So signing a deal never penalizes the rep during ramp; the contract gets a fair window, then it's judged honestly. Shelfware-from-day-one is still caught at day 91 because Trigger B forces activation regardless."*
 
 **Don't:** dive into the exact piecewise math unless asked. The detail is in the pillar cards.
 
-**Cue to advance:** after the RAG bands.
+**Cue to advance:** after the v1.3 footnote.
 
 ---
 
@@ -151,7 +152,7 @@ If the panel asks "you didn't cover X" mid-presentation, use these cue words to 
 
 ---
 
-## 3. Anticipated Q&A: 12 most likely questions
+## 3. Anticipated Q&A: 15 most likely questions (12 v1 + 3 new v2)
 
 For each: the question, a 30-second answer, the "if they push" deeper response, and the reference for after the interview.
 
@@ -245,9 +246,47 @@ For each: the question, a 30-second answer, the "if they push" deeper response, 
 
 ---
 
+### Q12a. "Where does AVRI reward landing new bookings?"
+
+**Answer:** "Directly: nowhere. AVRI is deliberately a value-realization metric. It runs alongside commercial metrics like ARR retention and expansion bookings. If AVRI directly rewarded the act of signing, we'd recreate the very TCV-trap that GCS is moving away from. What AVRI does is *not penalize* new bookings during ramp — that's the v1.3 Activation Grace Period. A signed contract gets a 90-day window or until usage hits 15% of monthly commit, whichever first. Inside that window the contract is excluded from CR's denominator, so the CSM's score doesn't drop just because they signed something. Outside the window, the contract is judged honestly: fast ramp = healthy contribution; slow ramp = honest red. Bookings stays measured commercially via ARR; AVRI is the value-realization overlay."
+
+**If pushed:** "If you wanted to *directly* reward bookings, the v2 alternative is a fifth pillar called something like Initial Adoption Speed, scoring time-to-first-X% utilization. But for v1, the grace period gets us most of the way there without breaking the 4-pillars-for-4-dimensions structure."
+
+**Reference:** lessons_learned.md #15 (or whatever number we land at) on the bookings-rewards design tension.
+
+---
+
 ### Q12. "If you redid this with newer tools today, what would change?"
 
 **Answer:** "Three things. First, an agentic data quality monitor, agent watches the pipeline, surfaces anomalies in Slack autonomously, instead of me running inspection.py manually. Second, LLM-summarized account briefs, for each at-risk account, generate a CSM-ready talking points doc from the consumption and ticket history. Third, tenure-aware cold-start, separate Onboarding RAG state instead of forcing new accounts into Green/Yellow/Red buckets."
+
+---
+
+### Q13 (v2). "Two CSMs both at 80% AVRI on very different book sizes — does your metric distinguish them?"
+
+**Answer:** "On AVRI alone, no — and that's intentional. AVRI is a quality-of-execution score; treating $25M and $1M books as identical at the same AVRI is what makes it segment-fair and comp-grade. But your question points at a real gap, which is why v2 introduces RV: Realized Value. RV = ARR × AVRI/100. It's the scale-aware composition. The $25M book at AVRI=80 has $20M of RV; the $1M book at AVRI=80 has $800K. Same quality signal; different scale signal. They live on the same dashboard, neither replaces the other. AVRI for CSM evaluation; RV for executive risk concentration."
+
+**If pushed:** "We considered making AVRI itself scale-aware via squaring or sigmoidal curves. We rejected it because (a) without renewal data we can't justify the curvature, and (b) collapsing scale into AVRI would re-introduce the TCV-trap we were explicitly designed to avoid. Linear RV alongside AVRI is the cleanest separation."
+
+**Reference:** lessons_learned.md #16, metric_v2.md.
+
+---
+
+### Q14 (v2). "Why linear RV and not quadratic or sigmoidal?"
+
+**Answer:** "Three reasons. First, decomposability — linear factors cleanly across pillars and aggregates, so the pillar heatmap is *exactly* the metric, not an approximation. Quadratic and sigmoidal don't factor like this, which would force the dashboard to either fudge the math or surface arithmetic that doesn't add up. Second, empirical honesty — without renewal-outcome data, the convexity in quadratic is speculation. We don't have a study to cite that says the AVRI-to-realized-revenue curve is specifically sigmoidal versus some other shape. Third, calibratability — linear is the conservative starting point. v3's job is to fit the actual function from historical renewal outcomes; if it comes out non-linear, we replace the formula then. The config schema accepts that swap."
+
+**If pushed:** "I considered the kinetic-energy analogy — mass linear, velocity squared. It's a great story but a bad derivation. KE has v² because ∫F·dx integrates that way; AVRI doesn't have an analogous structure that produces v². I went with the version I can defend without invoking analogies."
+
+---
+
+### Q15 (v2). "Should RV be in the comp plan?"
+
+**Answer:** "Probably not, and here's why. Earlier in development I was tempted to use RV for CSM ranking. The data showed me the problem: under RV-as-ranking, an Enterprise CSM with a $17M book at AVRI=44 outranks a Mid-Market CSM with a $1M book at AVRI=89. RV mechanically rewards segment assignment, not performance. AVRI stays the comp metric — it's segment-fair and quality-graded. RV is for executive risk views and account-level triage. Three metrics, three consumers, three uses; no single combined score."
+
+**If pushed:** "If you wanted RV in compensation in any form, the closest defensible move is something like *RV improvement year-over-year* — recognizing the rep who actually moved their book's realization rate. Even there I'd push for transparent calibration before making it a comp lever."
+
+**Reference:** lessons_learned.md #18.
 
 ---
 

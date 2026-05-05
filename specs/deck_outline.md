@@ -7,18 +7,20 @@
 
 ---
 
-## Slide map
+## Slide map (v2.0 — 8 slides)
 
 | # | Title | Time | What it does |
 |---|---|---|---|
-| 1 | Cover + Technical PM philosophy | 4 min | Frames who I am and how I approach the problem |
-| 2 | The problem GCS is trying to solve | 5 min | TCV → ARR + consumption hybrid; the 4 dimensions |
-| 3 | Why no existing metric works | 6 min | Metrics zoo; the gap that justifies a new metric |
-| 4 | AVRI — proposal | 8 min | 4 pillars, weights, RAG, floor rule, defense |
-| 5 | Proof + live demo | 8 min | 3 accounts; switch to Streamlit; at-risk renewals |
-| 6 | Retrospective + roadmap | 4 min | Spec-driven AI methodology; what v2 looks like |
+| 1 | Cover + Technical PM philosophy | 3 min | Frames who I am and how I approach the problem |
+| 2 | The problem GCS is trying to solve | 4 min | TCV → ARR + consumption hybrid; the 4 dimensions |
+| 3 | Why no existing metric works | 5 min | Metrics zoo; AVRI × CHS crosstab; the gap |
+| 4 | AVRI — quality of execution | 6 min | 4 pillars, weights, RAG, floor rule |
+| **5** | **Quality × Scale = Realized Value** | **5 min** | **NEW: linear RV, decomposition, $202M of $311M realized headline** |
+| 6 | Proof — three disagreements | 6 min | 3 case cards (now with RV/unrealized $ line); transition to demo |
+| 7 | Retrospective + v3 roadmap | 4 min | Spec-driven AI; v2 what shipped; v3 calibration |
+| 8 (appx) | Edge case handling matrix | Q&A | Brief's 5 edge cases × AVRI mechanism (defense backup) |
 
-Total: ~35 minutes, leaving 25 minutes for the Q&A round explicitly called out in the brief.
+Total: ~33 minutes spoken, leaving Q&A room.
 
 ---
 
@@ -107,26 +109,48 @@ Total: ~35 minutes, leaving 25 minutes for the Q&A round explicitly called out i
 
 ---
 
-## Slide 5: Proof + Live Demo
+## Slide 5 (NEW): Quality × Scale = Realized Value
 
-**Visual:** Three-account comparison table:
-| Account | ARR | Naive CHS | AVRI | Why AVRI is right |
-|---|---|---|---|---|
-| ACC-00202 (FS) | $3.5M | 40 (yellow) | **19.5 (red)** | Pure shelfware: 0 active days in 90; ARR-weighted metrics hide this |
-| ACC-00226 (Tech) | $8M | 70 | **50 (yellow)** | Consumption looks great (130% util) but tech-health is broken; floor rule fires |
-| ACC-00876 (Mfg) | $246K | 57 (yellow) | **92 (green)** | Naive CHS was fooled by one bad week; AVRI's decay-weighted TH gets it right |
+**Visual:** Two halves.
+- LEFT: the linear formula `RV = ARR × (AVRI / 100)` displayed prominently. Brief callout: *"Decomposable. Defensible. Calibratable."*
+- RIGHT: stacked-bar headline showing total ARR split into Realized (green) + Unrealized (red). Numbers from `pillar_decomposition_snapshot.json`.
+- BOTTOM: mini pillar-decomposition heatmap (3 regions × 4 pillars + floor) — the same chart from the dashboard's Realized Value tab.
 
-**Speaker notes (~8 min):**
-- Spend 1.5 min per account walking the row.
-- Then **switch to the Streamlit dashboard** and demo:
-  - **Executive Overview tab**, region cards, the comparison stack chart, "AVRI surfaces more risk than naive CHS"
-  - **At-Risk Renewals tab**, *"Here are 15 accounts a CSM should be working today. Top one is $3.6M renewing in 72 days. No existing metric flags this with that urgency."*
-  - **Account Drill-down → ACC-00202** (use the deck-story quick picker), "Look at the time series. Pure shelfware. Latest health color is green; that's why naive CHS gives it 40. AVRI sees through it."
-- Close with the dashboard's deck-quality moment: "This is the working tool. Five minutes from concept to action."
+**Speaker notes (~5 min):**
+- "AVRI is our quality signal. But the brief asked us to balance four dimensions including bookings — and a quality-only score treats a $25M book at 80% identically to a $1M book at 80%. That's wrong for executive triage even if it's right for CSM evaluation."
+- Define RV: *"RV = ARR × AVRI/100. Linear. Each account contributes its ARR weighted by how much it's realizing. Onboarding accounts contribute zero; signing never penalizes the CSM."*
+- Walk through what RV gives us:
+  - **Headline: $X realized of $Y total ARR.** Single executive number; one-sentence answer to "where are we leaking?"
+  - **Pillar decomposition.** Unrealized $ splits cleanly across CR/UM/DM/TH/floor. The heatmap *is* the metric, not an approximation.
+  - **Aggregation.** Sum at any level — region, segment, CSM, account — and the numbers reconcile to their parent.
+- Address the "why linear?" question proactively: *"We considered quadratic and sigmoidal. Linear wins on three counts: it factors cleanly across pillars and aggregates, it doesn't pretend to know a curvature we can't justify without renewal data, and it's the conservative starting point — v3 calibration replaces it from real outcomes."*
+- The thesis: *"AVRI is velocity. RV is momentum. Both belong on the dashboard, neither replaces the other."*
 
 ---
 
-## Slide 6: Retrospective + Roadmap
+## Slide 6 (was 5): Proof — three disagreements
+
+**Visual:** Three case-card columns. Same accounts as before; now each card carries an additional RV/unrealized $ line.
+
+| Tag | Account | ARR | CHS | AVRI | RV / Unrealized | Why AVRI is right |
+|---|---|---|---|---|---|---|
+| FLOOR RULE | ACC-00026 (Healthcare) | $165K | 78 (G) | **50 (Y)** | $83K / $83K | TH=28.5; floor rule caps AVRI at 50. CHS has no analog. |
+| DECAY | ACC-00876 (Mfg) | $246K | 57 (Y) | **92 (G)** | $227K / $19K | One-bad-week red color fooled CHS. AVRI's 90d decay TH gets the trend. |
+| ESCALATE | ACC-00298 (FS) | $325K | 57 (Y) | **24 (R)** | $77K / $248K | Three pillars in collapse. CHS hedges; AVRI escalates. |
+
+**Speaker notes (~6 min):**
+- "Three accounts. Same data. Three different shapes of disagreement with naive CHS — each validates a specific AVRI design choice."
+- Walk each card in 1.5 min. Reference the RV/unrealized $ explicitly: *"$248K of unrealized value in this one account — the largest single-account contribution to the renewal landmine pile we just looked at."*
+- Then **switch to the Streamlit dashboard** and demo:
+  - **Realized Value tab**, headline + heatmap. *"This is the executive dashboard. $X realized of $Y. EMEA's TH column tells me where to look."*
+  - **At-Risk Renewals tab**, *"15 accounts renewing in 90 days; sortable by unrealized $. Top of the list is the renewal landmine."*
+  - **Account Drill-down → ACC-00026** (FLOOR RULE example). *"This is where the floor rule lives — accounts naive CHS would not flag because consumption looks great, but TH crashed."* (The crosstab story is on slide 3 + the lobby's "AVRI vs CHS Stories" tab; the dashboard no longer has a dedicated AVRI vs CHS tab.)
+  - Optionally: **Calibration tab.** *"Every parameter in the metric is here. Production is locked; this is the transparency artifact."*
+- Close: *"This is the working tool. Three clicks from question to actionable list."*
+
+---
+
+## Slide 7 (was 6): Retrospective + Roadmap
 
 **Visual:** Three columns.
 - LEFT: "What I'd do differently" (lessons learned)

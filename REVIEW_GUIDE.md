@@ -13,7 +13,7 @@ For when you have one coffee and want the whole picture.
 | 1 | `README.md` (top-level) | The status table. Confirms what's done vs pending. |
 | 2 | `metrics-explorer.html` → **Project Map** tab | Visual phase progress. Click any phase to see step-by-step what was built. |
 | 3 | `metrics-explorer.html` → **How It Connects** tab | The 5-column architecture diagram. This is the mental model for the whole project. |
-| 4 | `AVRI_Deck.pdf` | The 6-slide executive narrative. Skim — the words on each slide are the elevator pitch. |
+| 4 | `AVRI_Deck.pdf` | The 8-slide executive narrative (6 main + new RV slide + edge-case appendix). Skim. |
 
 **You're done.** You now know what the project is, how it's structured, and what its narrative is.
 
@@ -36,24 +36,25 @@ For when you want to fully understand the metric and the design choices.
 | 4 | `metrics-explorer.html` → **Metrics Explorer** tab | Interactive table of ~30 industry metrics. Toggle filters; click any row for detail. |
 | 5 | `metrics-explorer.html` → **Edge Cases** tab | The 5 messy patterns the brief specified — these are what existing metrics fail on. |
 
-### Phase 3: The proposal (15 min)
+### Phase 3: The proposal (20 min)
 | # | Open | Why |
 |---|---|---|
-| 6 | `metrics-explorer.html` → **AVRI Spec** tab | The full metric: 4 pillars, formulas, RAG bands, edge case behavior. Click the orange ⓘ icons next to any number for the rationale. |
-| 7 | `metrics-explorer.html` → **Schema → Metric** tab | Visual flow showing how raw data columns roll up into pillars. Click pillar buttons to isolate one. |
-| 8 | `metrics-explorer.html` → **Defending Choices** tab | Every numeric value in the metric, with the rationale + scripted defense. Filter by category to focus. |
+| 6 | `metrics-explorer.html` → **AVRI Spec** tab | The full quality metric: 4 pillars, formulas, RAG bands, edge case behavior. Click ⓘ icons for rationale. |
+| 7 | `metrics-explorer.html` → **Realized Value** tab | v2.0 — RV linear formula, pillar decomposition, $ realized vs unrealized. Where the scale dimension lives. |
+| 8 | `metrics-explorer.html` → **Schema → Metric** tab | Visual flow showing how raw data rolls into pillars and out into RV. |
+| 9 | `metrics-explorer.html` → **Defending Choices** tab | Every numeric value, with the rationale and scripted defense. |
 
 ### Phase 4: How it played out on real data (10 min)
 | # | Open | Why |
 |---|---|---|
-| 9 | `specs/inspection_findings.md` | The auto-generated report comparing AVRI vs naive CHS on the actual generated dataset. Sections 4 (shelfware), 7 (floor rule), 11 (at-risk renewals) are the strongest. |
-| 10 | `specs/lessons_learned.md` | 13 documented pitfalls and the lessons from each. This is the retrospective fuel. |
+| 10 | `specs/inspection_findings.md` | Auto-generated comparison report. v2 sections 13–16 cover RV totals, pillar attribution, and renewal landmines. |
+| 11 | `specs/lessons_learned.md` | 19 documented pitfalls. Entries 16–19 are the v2 design tensions — the strongest retrospective material. |
 
 ### Phase 5: The pitch (15 min)
 | # | Open | Why |
 |---|---|---|
-| 11 | `AVRI_Deck.pptx` (or PDF) | Read each slide carefully now that you understand the underlying work. |
-| 12 | `metrics-explorer.html` → **Takeaways** tab | The three big claims, distilled. |
+| 12 | `AVRI_Deck.pptx` (or PDF) | Read each slide carefully now that you understand the underlying work. 8 slides: cover, problem, gap, AVRI, RV (NEW), proof, retro, edge-case appendix. |
+| 13 | `metrics-explorer.html` → **Takeaways** tab | The big claims, distilled. |
 
 **You're done.** You now understand the metric, the choices, and how it performed.
 
@@ -75,12 +76,15 @@ For when you want to read the actual implementation and verify it works.
 | 6 | `data_generation/main.py` | Orchestrator — the 6-step pipeline. |
 | 7 | `data_generation/load_to_bigquery.py` | Parquet → BQ loader with explicit schemas. |
 | 8 | `pipeline_and_tests/sql/existing_metrics/metrics_existing_account.sql` | TCV, ARR, raw util, naive CHS — the "metrics zoo" comparison baseline. |
-| 9 | `pipeline_and_tests/sql/avri/avri_account.sql` | The AVRI formula itself, in SQL. The 4 pillar CTEs are the heart. |
-| 10 | `pipeline_and_tests/sql/avri/avri_csm.sql` and `avri_region.sql` | Dollar-weighted rollups. |
-| 11 | `pipeline_and_tests/run_pipeline.py` | SQL pipeline orchestrator. |
-| 12 | `pipeline_and_tests/inspection.py` | The ~12 comparison queries that produce `inspection_findings.md`. |
-| 13 | `pipeline_and_tests/test_data_quality.py` | 22 pytest assertions — schema sanity, FK integrity, anomaly detection, output integrity. |
-| 14 | `dashboard/app.py` | Streamlit UI. Read top-down — config, BigQuery helpers, sidebar filters, then 4 tabs. |
+| 9 | `pipeline_and_tests/sql/avri/avri_account.sql` | The AVRI formula in SQL. v2.0 added: rv_dollars + 5 pillar-attribution columns. |
+| 10 | `pipeline_and_tests/sql/avri/avri_csm.sql` and `avri_region.sql` | Dollar-weighted rollups + v2.0 RV totals + realization rate. |
+| 11 | `core/scoring.py` | **v2.0 — single source of truth.** Python implementation that mirrors the SQL. Both pipeline tests and dashboard call it. |
+| 12 | `core/config_v1.json` | v2.0 — every calibratable parameter in one place. |
+| 13 | `pipeline_and_tests/run_pipeline.py` | SQL pipeline orchestrator. |
+| 14 | `pipeline_and_tests/inspection.py` | The comparison queries — v2 added RV totals, pillar attribution, renewal-landmine sections. |
+| 15 | `pipeline_and_tests/test_data_quality.py` | 29 pytest assertions — 24 v1 + 5 v2 RV invariants (decomposition, grace exclusion, aggregation). |
+| 16 | `core/test_scoring.py` | 20 unit tests on the scoring module — math invariants + golden snapshot. |
+| 17 | `dashboard/app.py` | Streamlit UI. 6 tabs: Realized Value (v2 landing), Executive Overview, CSM Detail, Account Drill-down, At-Risk Renewals, Calibration (v2). The static AVRI vs CHS interactive view was removed in v2 (the static lobby tab + slide 3 carry that story); code preserved under `if False:` for revival. |
 
 ### To run end-to-end yourself
 
@@ -98,10 +102,14 @@ python load_to_bigquery.py
 cd ../pipeline_and_tests && pip install -r requirements.txt
 python run_pipeline.py
 python inspection.py
-pytest -v
+python snapshot_pillar_decomposition.py
+pytest -v                  # 29 tests
+
+# v2 contract test (scoring.py vs SQL parity)
+cd .. && python -m pytest core/test_scoring.py -v
 
 # Dashboard
-cd ../dashboard && pip install -r requirements.txt
+cd dashboard && pip install -r requirements.txt
 streamlit run app.py
 ```
 

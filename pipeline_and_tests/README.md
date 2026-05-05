@@ -5,9 +5,11 @@ SQL transforms that read from the BigQuery synthetic dataset and materialize fou
 | Table | What it contains |
 |---|---|
 | `metrics_existing_account` | TCV, ARR, raw utilization, latest health color, naive Gainsight-style CHS |
-| `avri_account` | All four AVRI pillars (CR, UM, DM, TH) + composite + RAG color |
-| `avri_csm` | Dollar-weighted AVRI per CSM with RAG count breakdown |
-| `avri_region` | Dollar-weighted AVRI per region with RAG count breakdown |
+| `avri_account` | Four AVRI pillars (CR, UM, DM, TH) + composite + RAG color + **v2.0: rv_dollars + pillar-attribution columns** |
+| `avri_csm` | Dollar-weighted AVRI per CSM with RAG counts + **v2.0: book_rv_dollars, realization_rate, pillar totals** |
+| `avri_region` | Same rollup at region grain |
+
+The scoring math is implemented in two parallel places that **must produce identical numbers** for the bundled default config: the SQL files in `sql/avri/` (BigQuery side) and `core/scoring.py` (Python side). The snapshot test in `core/test_scoring.py` verifies this contract. See `core/README.md` for the contract details.
 
 ## Run
 
@@ -22,18 +24,16 @@ Optional flags: `--project`, `--dataset`, `--as-of-date` (default 2026-04-22).
 
 ```
 pipeline_and_tests/
-├── run_pipeline.py            ← SQL pipeline orchestrator
-├── inspection.py              ← inductive comparison report generator
-├── test_data_quality.py       ← pytest DQ assertions (Phase 3.5)
-├── conftest.py                ← shared pytest fixtures
+├── run_pipeline.py                       ← SQL pipeline orchestrator
+├── inspection.py                         ← v1+v2 comparison report generator
+├── test_data_quality.py                  ← 29 pytest DQ assertions
+├── snapshot_avri_vs_chs.py               ← lobby snapshot: AVRI vs CHS
+├── snapshot_pillar_decomposition.py      ← v2.0 lobby snapshot: pillar decomposition
+├── conftest.py
 ├── requirements.txt
 └── sql/
-    ├── existing_metrics/
-    │   └── metrics_existing_account.sql
-    └── avri/
-        ├── avri_account.sql
-        ├── avri_csm.sql
-        └── avri_region.sql
+    ├── existing_metrics/metrics_existing_account.sql
+    └── avri/avri_account.sql, avri_csm.sql, avri_region.sql
 ```
 
 ## Data quality tests
@@ -45,14 +45,15 @@ pip install -r requirements.txt
 pytest -v
 ```
 
-Coverage (~22 assertions across 4 sections):
+Coverage (29 assertions: 24 v1 + 5 new v2 RV invariants):
 
 | Section | What it checks |
 |---|---|
-| Schema & value sanity | Uniqueness of IDs; non-negative numeric values; date ordering; valid color enum |
-| Referential integrity | All FKs resolve (contracts → accounts, account_health → accounts, accounts → csm_rep) |
-| Anomaly detection | The brief's required anomalies are detectable: ~150 orphan usage logs, ~150 out-of-window logs, ~50 overlapping-contract accounts |
-| Pipeline output integrity | AVRI scores in [0,100], color values constrained, rollup totals reconcile with account-level counts |
+| 1. Schema & value sanity | Uniqueness of IDs; non-negative numeric values; date ordering; valid color enum |
+| 2. Referential integrity | All FKs resolve (contracts → accounts, account_health → accounts, accounts → csm_rep) |
+| 3. Anomaly detection | The brief's required anomalies are detectable: ~150 orphan usage logs, ~150 out-of-window logs, ~50 overlapping-contract accounts |
+| 4. Pipeline output integrity | AVRI scores in [0,100], color values constrained, rollup totals reconcile |
+| **5. v2 Realized Value invariants** | RV = 0 for grace; pillar decomposition sums to unrealized $; CSM/region rollups match account total; realization rate is in 0.5–0.95 band |
 
 Run with verbose output (`pytest -v -s`) to see counts printed for the anomaly-detection tests, useful for verifying the injected-anomaly numbers match what was generated.
 
